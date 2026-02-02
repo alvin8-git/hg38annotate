@@ -46,8 +46,8 @@ services:
       # GRCh38 Reference genome (local path is hg38/)
       - ${HOME}/Databases/hg38:/home/user/Databases/GRCh38:ro
 
-      # VEP GRCh38 cache
-      - ${HOME}/Databases/vep:/home/user/Databases/vep:ro
+      # VEP GRCh38 RefSeq cache
+      - /mnt/hgfs/Shared2/Databases/vep:/home/user/Databases/vep:ro
 
       # snpEff GRCh38 database
       - ${HOME}/Databases/snpEff:/home/user/Databases/snpEff:ro
