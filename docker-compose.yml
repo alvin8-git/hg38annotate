@@ -43,8 +43,8 @@ services:
       # ANNOVAR hg38 databases
       - ${HOME}/Databases/humandb:/home/user/Databases/humandb:ro
 
-      # GRCh38 Reference genome
-      - ${HOME}/Databases/GRCh38:/home/user/Databases/GRCh38:ro
+      # GRCh38 Reference genome (local path is hg38/)
+      - ${HOME}/Databases/hg38:/home/user/Databases/GRCh38:ro
 
       # VEP GRCh38 cache
       - ${HOME}/Databases/vep:/home/user/Databases/vep:ro

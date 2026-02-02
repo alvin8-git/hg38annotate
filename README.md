@@ -209,14 +209,14 @@ docker-compose run --rm hg38annotate-dev
 
 ### Required Database Mounts (HG38/GRCh38)
 
-| Mount Point | Description | Size |
-|-------------|-------------|------|
-| `/home/user/Databases/humandb` | ANNOVAR hg38 databases | ~50GB |
-| `/home/user/Databases/GRCh38` | GRCh38 reference genome (hg38.fa + index) | ~3GB |
-| `/home/user/Databases/vep` | VEP GRCh38 cache | ~28GB |
-| `/home/user/Databases/snpEff` | snpEff GRCh38.p13.RefSeq database | ~1GB |
-| `/home/user/Databases/SG10K.hg38.vcf` | SG10K HG38 population database | ~2GB |
-| `/home/user/Databases/iSeq` | iSeq reference VCFs (HG38) | ~100MB |
+| Local Path | Container Mount | Description |
+|------------|-----------------|-------------|
+| `~/Databases/humandb` | `/home/user/Databases/humandb` | ANNOVAR hg38 databases |
+| `~/Databases/hg38` | `/home/user/Databases/GRCh38` | GRCh38 reference (hg38.fa) |
+| `~/Databases/vep` | `/home/user/Databases/vep` | VEP GRCh38 cache (~28GB) |
+| `~/Databases/snpEff` | `/home/user/Databases/snpEff` | snpEff GRCh38.p13.RefSeq |
+| `~/Databases/SG10K.hg38.vcf` | `/home/user/Databases/SG10K.hg38.vcf` | SG10K HG38 population |
+| `~/Databases/iSeq` | `/home/user/Databases/iSeq` | iSeq reference VCFs |
 
 ### Included Tools and Versions
 
