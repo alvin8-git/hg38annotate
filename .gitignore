@@ -1,0 +1,39 @@
+# Annotation tool directories (copy before Docker build)
+# These contain large binaries and should not be committed
+annovar/
+snpEff/
+CancerVar/
+ensembl-vep/
+
+# Data directories
+data/
+
+# Output directories
+output*/
+html_report/
+SnapShots/
+
+# Excel and intermediate files
+*.xlsx
+*.xls
+*.bed
+*.bam
+*.bai
+*.vcf
+*.vcf.gz
+*.vcf.gz.tbi
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
