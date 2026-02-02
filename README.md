@@ -127,11 +127,9 @@ The Docker container packages all annotation tools (ANNOVAR, VEP, snpEff, TransV
 git clone https://github.com/alvin8-git/hg38annotate.git
 cd hg38annotate
 
-# 2. Copy annotation tools to build context (see Prerequisites below)
-cp -r ~/Software/annovar ./annovar
-cp -r ~/Software/snpEff ./snpEff
-cp -r ~/Software/CancerVar ./CancerVar
-cp -r ~/Software/ensembl-vep ./ensembl-vep
+# 2. Download and extract annotation tools from release
+wget https://github.com/alvin8-git/hg38annotate/releases/download/v1.0.0/Software.tar.gz
+tar -xzf Software.tar.gz
 
 # 3. Build the image
 docker build -t hg38annotate:latest .
@@ -144,12 +142,18 @@ docker run -v ${HOME}/Databases:/home/user/Databases:ro \
 
 ### Prerequisites
 
-Before building, copy the annotation tool directories into the build context:
+Before building, you need the annotation tools in the build context. Choose one option:
 
+**Option 1: Download from GitHub Release (recommended)**
 ```bash
 cd /path/to/hg38annotate
+wget https://github.com/alvin8-git/hg38annotate/releases/download/v1.0.0/Software.tar.gz
+tar -xzf Software.tar.gz
+```
 
-# Copy annotation tools (~500MB total)
+**Option 2: Copy from local installation**
+```bash
+cd /path/to/hg38annotate
 cp -r ~/Software/annovar ./annovar
 cp -r ~/Software/snpEff ./snpEff
 cp -r ~/Software/CancerVar ./CancerVar
