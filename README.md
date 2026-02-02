@@ -116,6 +116,77 @@ output-hg38/
             └── sample1_var0.html  # Variant detail pages
 ```
 
+## Docker Container
+
+### Prerequisites
+
+Before building the Docker container, you need to set up the annotation tool directories in the build context:
+
+```bash
+cd /path/to/hg38annotate
+
+# Copy or link annotation tools (requires ~500MB)
+cp -r ~/Software/annovar ./annovar
+cp -r ~/Software/snpEff ./snpEff
+cp -r ~/Software/CancerVar ./CancerVar
+cp -r ~/Software/ensembl-vep ./ensembl-vep
+```
+
+Or if symlinks are supported on your filesystem:
+```bash
+ln -s ~/Software/annovar ./annovar
+ln -s ~/Software/snpEff ./snpEff
+ln -s ~/Software/CancerVar ./CancerVar
+ln -s ~/Software/ensembl-vep ./ensembl-vep
+```
+
+### Building
+
+```bash
+docker build -t hg38annotate .
+# Or with docker-compose:
+docker-compose build
+```
+
+### Running
+
+**Interactive shell:**
+```bash
+docker-compose run --rm hg38annotate
+```
+
+**Run pipeline:**
+```bash
+docker run -v ${HOME}/Databases:/home/user/Databases:ro \
+           -v $(pwd)/data:/data \
+           hg38annotate processVCF-hg38.sh
+```
+
+### Required Database Mounts (HG38/GRCh38)
+
+| Mount Point | Description |
+|-------------|-------------|
+| `/home/user/Databases/humandb` | ANNOVAR hg38 databases |
+| `/home/user/Databases/GRCh38` | GRCh38 reference genome (hg38.fa) |
+| `/home/user/Databases/vep` | VEP GRCh38 cache (~28GB) |
+| `/home/user/Databases/snpEff` | snpEff GRCh38.p13.RefSeq database |
+| `/home/user/Databases/SG10K.hg38.vcf` | SG10K HG38 population database |
+| `/home/user/Databases/iSeq` | iSeq reference VCFs (HG38) |
+
+### Service Configurations
+
+The `docker-compose.yml` provides three service configurations:
+
+1. **hg38annotate** - Full setup with all databases mounted
+2. **hg38annotate-minimal** - Minimal with specific database paths
+3. **hg38annotate-dev** - Development mode with writable script mounts
+
+### Verify Installation
+
+```bash
+docker run --rm hg38annotate /home/user/Scripts/check_docker_deps.sh
+```
+
 ## License
 
 Clinical Genomics Pipeline - Internal Use

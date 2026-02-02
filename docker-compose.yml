@@ -1,0 +1,85 @@
+# =============================================================================
+# docker-compose.yml for hg38annotate Pipeline
+# =============================================================================
+# Usage:
+#   1. Build: docker-compose build
+#   2. Run:   docker-compose run --rm hg38annotate
+#
+# Prerequisites:
+#   - Databases directory at ${HOME}/Databases with HG38/GRCh38 databases
+#   - VEP GRCh38 cache at ${HOME}/Databases/vep
+#   - ANNOVAR hg38 databases at ${HOME}/Databases/humandb
+#
+# Permission Handling:
+#   The entrypoint script automatically handles /data permissions.
+# =============================================================================
+
+version: '3.8'
+
+services:
+  hg38annotate:
+    build: .
+    image: hg38annotate:latest
+    container_name: hg38annotate
+    volumes:
+      # Mount all databases (required for full operation)
+      - ${HOME}/Databases:/home/user/Databases:ro
+
+      # Mount VEP installation (optional - if not bundled in image)
+      - ${HOME}/Software/ensembl-vep:/home/user/Software/ensembl-vep:ro
+
+      # Mount data directory for processing (read-write)
+      - ./data:/data
+
+    working_dir: /data
+    stdin_open: true
+    tty: true
+
+  # Minimal configuration with specific database paths
+  hg38annotate-minimal:
+    build: .
+    image: hg38annotate:latest
+    volumes:
+      # ANNOVAR hg38 databases
+      - ${HOME}/Databases/humandb:/home/user/Databases/humandb:ro
+
+      # GRCh38 Reference genome
+      - ${HOME}/Databases/GRCh38:/home/user/Databases/GRCh38:ro
+
+      # VEP GRCh38 cache
+      - ${HOME}/Databases/vep:/home/user/Databases/vep:ro
+
+      # snpEff GRCh38 database
+      - ${HOME}/Databases/snpEff:/home/user/Databases/snpEff:ro
+
+      # SG10K HG38 database
+      - ${HOME}/Databases/SG10K.hg38.vcf:/home/user/Databases/SG10K.hg38.vcf:ro
+
+      # iSeq reference VCFs (HG38)
+      - ${HOME}/Databases/iSeq:/home/user/Databases/iSeq:ro
+
+      # Data directory
+      - ./data:/data
+
+    working_dir: /data
+    stdin_open: true
+    tty: true
+
+  # Development mode with writable mounts
+  hg38annotate-dev:
+    build: .
+    image: hg38annotate:latest
+    volumes:
+      - ${HOME}/Databases:/home/user/Databases:ro
+
+      # Mount scripts as writable for development
+      - ./processVCF-hg38.sh:/home/user/Scripts/processVCF-hg38.sh
+      - ./mergeVCFannotation-optimized-hg38.sh:/home/user/Scripts/mergeVCFannotation-optimized-hg38.sh
+      - ./excel_to_html_report.py:/home/user/Scripts/excel_to_html_report.py
+      - ./make_IGV_snapshots.py:/home/user/Scripts/make_IGV_snapshots.py
+
+      - ./data:/data
+
+    working_dir: /data
+    stdin_open: true
+    tty: true
