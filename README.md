@@ -213,7 +213,7 @@ docker-compose run --rm hg38annotate-dev
 |------------|-----------------|-------------|
 | `~/Databases/humandb` | `/home/user/Databases/humandb` | ANNOVAR hg38 databases |
 | `~/Databases/hg38` | `/home/user/Databases/GRCh38` | GRCh38 reference (hg38.fa) |
-| `/mnt/hgfs/Shared2/Databases/vep` | `/home/user/Databases/vep` | VEP GRCh38 RefSeq cache |
+| `~/Databases/vep` | `/home/user/Databases/vep` | VEP GRCh38 RefSeq cache |
 | `~/Databases/snpEff` | `/home/user/Databases/snpEff` | snpEff GRCh38.p13.RefSeq |
 | `~/Databases/SG10K.hg38.vcf` | `/home/user/Databases/SG10K.hg38.vcf` | SG10K HG38 population |
 | `~/Databases/iSeq` | `/home/user/Databases/iSeq` | iSeq reference VCFs |

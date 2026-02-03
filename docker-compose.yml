@@ -47,7 +47,7 @@ services:
       - ${HOME}/Databases/hg38:/home/user/Databases/GRCh38:ro
 
       # VEP GRCh38 RefSeq cache
-      - /mnt/hgfs/Shared2/Databases/vep:/home/user/Databases/vep:ro
+      - ${HOME}/Databases/vep:/home/user/Databases/vep:ro
 
       # snpEff GRCh38 database
       - ${HOME}/Databases/snpEff:/home/user/Databases/snpEff:ro

@@ -23,6 +23,10 @@ SnapShots/
 *.vcf.gz
 *.vcf.gz.tbi
 
+# Exception: Allow TestData files
+!TestData/
+!TestData/**
+
 # Python
 __pycache__/
 *.pyc

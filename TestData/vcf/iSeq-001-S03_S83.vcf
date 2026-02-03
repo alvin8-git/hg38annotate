@@ -1,0 +1,36 @@
+##fileformat=VCFv4.1
+##FILTER=<ID=PASS,Description="All filters passed">
+##fileDate=20230118
+##source=Pisces 5.3.0.0
+##Pisces_cmdline=""-bam /mnt/hgfs/SharedUbuntu/iSeq/Run1/output-hg38/bam/iSeq-001-S03_S83.bam -g /home/alvin/Databases/hg38/ --minvf 0.01 --ssfilter FALSE --minbq 20 --maxvq 100 -c 10 --sbfilter 0.5 --minvq 20 --gvcf false --callmnvs true -i /mnt/hgfs/SharedUbuntu/iSeq/Test-iSeq/bed/AmpManifest-hg38.bed -t 9 --outfolder .""
+##reference=/home/alvin/Databases/hg38/
+##ALT=<ID=<M>,Description="There is an overlapping other allele that has been called in a separate VCF record">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##FILTER=<ID=q30,Description="Quality score less than 30">
+##FILTER=<ID=SB,Description="Variant strand bias too high">
+##FILTER=<ID=R5x9,Description="Repeats of part or all of the variant allele (max repeat length 5) in the reference greater than or equal to 9">
+##FILTER=<ID=NC,Description="No-call rate is above 0.6">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allele Depth">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Total Depth Used For Variant Calling">
+##FORMAT=<ID=VF,Number=.,Type=Float,Description="Variant Frequency">
+##FORMAT=<ID=NL,Number=1,Type=Integer,Description="Applied BaseCall Noise Level">
+##FORMAT=<ID=SB,Number=1,Type=Float,Description="StrandBias Score">
+##contig=<ID=chr1,length=248956422>
+##contig=<ID=chr11,length=135086622>
+##contig=<ID=chr12,length=133275309>
+##contig=<ID=chr17,length=83257441>
+##contig=<ID=chr19,length=58617616>
+##contig=<ID=chr3,length=198295559>
+##contig=<ID=chr6,length=170805979>
+##contig=<ID=chr9,length=138394717>
+##contig=<ID=chrM,length=16569>
+##contig=<ID=chrX,length=156040895>
+##bcftools_viewVersion=1.10.2+htslib-1.11
+##bcftools_viewCommand=view -i (%FILTER='PASS'||%FILTER='SB') -o iSeq-001-S03_S83.x.vcf iSeq-001-S03_S83.vcf; Date=Wed Jan 18 11:19:36 2023
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	iSeq-001-S03_S83.bam
+chr9	5069837	.	G	A	100	PASS	DP=969	GT:GQ:AD:DP:VF:NL:SB	1/1:14:4,965:969:0.996:20:-100
+chr9	5070227	.	ATTATC	A	100	PASS	DP=352	GT:GQ:AD:DP:VF:NL:SB	0/1:100:201,151:352:0.429:20:-100
+chr9	5070401	.	A	G	100	PASS	DP=73	GT:GQ:AD:DP:VF:NL:SB	0/1:100:25,48:73:0.658:20:-75.9266
+chr9	5072182	.	C	T	100	PASS	DP=8600	GT:GQ:AD:DP:VF:NL:SB	0/1:100:4523,4076:8600:0.474:20:-100
