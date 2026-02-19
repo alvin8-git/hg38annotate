@@ -40,7 +40,7 @@ SOFTWARE_DIR="$HOME_DIR/Software"
 DATABASES_DIR="$HOME_DIR/Databases"
 
 # Annotation tools
-ANNOVAR_DIR="${ANNOVAR_DIR:-$SOFTWARE_DIR/annovar}"
+ANNOVAR_FAST="${ANNOVAR_FAST:-/data/alvin/annovar/annovar-fast/annovar-fast.py}"
 SNPEFF_DIR="${SNPEFF_DIR:-$SOFTWARE_DIR/snpEff}"
 CANCERVAR_DIR="${CANCERVAR_DIR:-$SOFTWARE_DIR/CancerVar}"
 
@@ -158,27 +158,11 @@ run_annovar() {
 
     [ -f "$sample.annovar.txt" ] && return 0
 
-    log_info "Starting ANNOVAR for $sample"
+    log_info "Starting ANNOVAR-fast for $sample"
 
-    # Convert to ANNOVAR input
-    perl "$ANNOVAR_DIR/convert2annovar.pl" \
-        --format vcf4old "$vcf" \
-        --outfile "$sample.avinput" \
-        --includeinfo --withzyg 2>/dev/null
+    python3 "$ANNOVAR_FAST" "$vcf" -o "$sample.annovar.txt"
 
-    # Run table_annovar for HG38
-    perl "$ANNOVAR_DIR/table_annovar.pl" "$sample.avinput" "$HUMANDB" \
-        --buildver hg38 \
-        --outfile "$sample.outfile" \
-        --protocol refGene,ensGene,cytoBand,genomicSuperDups,esp6500siv2_all,exac03,1000g2015aug_all,1000g2015aug_afr,1000g2015aug_eas,1000g2015aug_amr,1000g2015aug_eur,1000g2015aug_sas,intervar_20180118,kaviar_20150923,mcap,revel,gnomad211_exome,gnomad30_genome,snp141,ljb26_all,clinvar_20220730,cosmic,dbscsnv11,hrcr1,gme,icgc28,TCGA,civic,tumorportal,gwasCatalog,encRegTfbsClustered,wgEncodeRegDnaseClustered,cg69,nci60,wgRna,dgvMerged,phastConsElements30way,phastConsElements100way,targetScanS \
-        --operation g,g,r,r,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,r,f,f,f,f,f,f,f,r,r,r,f,f,r,r,r,r,r \
-        --argument '-splicing 100',,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,, \
-        --nastring . --otherinfo 2>/dev/null
-
-    mv "$sample.outfile.hg38_multianno.txt" "$sample.annovar.txt"
-    rm -f "$sample.outfile."* "$sample.avinput"
-
-    log_success "ANNOVAR completed for $sample"
+    log_success "ANNOVAR-fast completed for $sample"
 }
 
 run_vep() {
@@ -564,7 +548,7 @@ run_annotations_parallel() {
     log_step "RUNNING ANNOTATIONS IN PARALLEL"
 
     export -f run_annovar run_vep run_snpeff run_transvar log_info log_success log_warn
-    export ANNOVAR_DIR SNPEFF_DIR VEP_CACHE HG38_FASTA REFSEQ_TRANSCRIPTS
+    export ANNOVAR_FAST SNPEFF_DIR VEP_CACHE HG38_FASTA REFSEQ_TRANSCRIPTS
 
     log_info "Starting parallel annotation (ANNOVAR, VEP, snpEff, TransVar)..."
 
