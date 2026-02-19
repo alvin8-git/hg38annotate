@@ -1,270 +1,257 @@
 # hg38annotate
 
-VCF annotation and HTML report generation pipeline for HG38 reference genome. Adapted from the processiSeq-hg38.sh pipeline for standalone use with VCF/BAM files.
+A Docker-based VCF annotation pipeline for the HG38/GRCh38 reference genome. Takes raw VCF files and produces multi-tool annotations, CancerVar cancer classification, IGV screenshots, and interactive HTML reports.
 
-## Overview
+## Features
 
-This pipeline takes VCF files and generates:
-1. Multi-tool annotations (ANNOVAR, VEP, snpEff, TransVar, CancerVar)
-2. Combined Excel output (Combine.xlsx)
-3. IGV screenshots for each variant
-4. Interactive HTML variant reports with embedded IGV screenshots
+- **Multi-tool annotation** — VEP (Ensembl), snpEff, TransVar, annovar-fast, cancervar-fast run in parallel
+- **Cancer classification** — CancerVar Tier I–IV scoring via cancervar-fast
+- **Population databases** — SG10K, GenomeAsia, gnomAD, ExAC, ESP6500, 1000 Genomes
+- **IGV screenshots** — Automated headless IGV snapshots for each filtered variant
+- **Interactive HTML reports** — Per-sample variant pages with embedded IGV screenshots, ACMG chips, and prediction score tables
+- **Stage control** — Run all three stages (Annotate → IGV → HTML) or individual stages; skip already-complete stages
 
-## Files
+## Prerequisites
 
-| File | Description |
-|------|-------------|
-| `processVCF-hg38.sh` | Main orchestration script with 3 stages: Annotation, IGV, HTML |
-| `mergeVCFannotation-optimized-hg38.sh` | Parallel annotation pipeline using ANNOVAR, VEP, snpEff, TransVar |
-| `make_IGV_snapshots.py` | IGV batch screenshot automation (requires xvfb, Java 8) |
-| `excel_to_html_report.py` | Converts Combine.xlsx to interactive HTML reports |
+- Docker ≥ 20.10
+- The annotation tools below (bundled in `Software.tar.gz` from the GitHub release)
+- annovar-fast + humandb-tbi (tabix-indexed databases, mounted at runtime)
+- HG38/GRCh38 reference databases (VEP cache, snpEff db, reference FASTA)
 
-## Usage
+## Installation
 
-### Full Pipeline
-```bash
-cd /path/to/analysis
-~/Shared/SCRIPTS/claude/hg38annotate/processVCF-hg38.sh
-```
-
-The script looks for:
-- `bam/` directory containing BAM files
-- `vcf/` directory containing VCF files
-
-### Individual Components
-
-**Annotation only:**
-```bash
-./mergeVCFannotation-optimized-hg38.sh sample.vcf
-```
-
-**IGV snapshots only:**
-```bash
-python3 make_IGV_snapshots.py sample.bam -r regions.bed -o SnapShots -bin /path/to/igv.jar -suffix sample_name
-```
-
-**HTML report only:**
-```bash
-python3 excel_to_html_report.py Combine.xlsx html_report SnapShots
-```
-
-## HTML Report Features
-
-The HTML report matches the processVCF style with:
-
-- **Landing page**: Clickable sample cards showing variant/gene counts
-- **Sample pages**: Variant tables with Gene, Location, HGVSc/p, VAF, DP
-- **Variant detail pages**: Collapsible panels with color-coded sections:
-  - **Blue**: Basic Variant Information (Chr, Pos, Ref, Alt, Gene, HGVSc/p, VAF, etc.)
-  - **Purple**: IGV Screenshot (embedded PNG)
-  - **Green**: Sample Comparison Data
-  - **Gray**: Additional Variant Information
-  - **Indigo**: Population Frequency Databases (with visual frequency bars)
-  - **Purple**: ACMG Classification Criteria (chip/button format for PVS1, PS1-4, PM1-6, PP1-5, BA1, BS1-4, BP1-7)
-  - **Orange**: Computational Predictions (score table with D/T/P/B badges)
-
-Empty fields are automatically hidden.
-
-## Column Structure (Combine.xlsx)
-
-| Columns | Content |
-|---------|---------|
-| 1 | SAMPLE |
-| 2-19 | Basic variant info (Chr, Pos, Ref, Alt, GT, GENE, Transcript, HGVSg, HGVSc, HGVSp, AD, DP, QUAL, VAF, snp141, annotation, cosmic91, CancerVar) |
-| 20-21 | Sample comparison (iSeq203, TMSP904) |
-| 22-30 | Additional info (FILTER, ExonicFunc, Func, cytoBand, Consequence, STRAND, VARIANT_CLASS, EXON, INTRON) |
-| 31-88 | Population frequencies (SG10K, ESP, ExAC, 1000g, Kaviar, gnomAD, HRC, GME, etc.) |
-| 89-122 | ACMG criteria (InterVar, PVS1, PS1-4, PM1-6, PP1-5, BA1, BS1-4, BP1-7, ClinVar fields) |
-| 123-152 | Computational predictions (MCAP, REVEL, SIFT, PolyPhen2, LRT, MutationTaster, FATHMM, CADD, GERP++, phyloP, SiPhy, etc.) |
-
-## Dependencies
-
-### Annotation Tools
-- ANNOVAR (`~/Software/annovar/`)
-- Ensembl VEP (via conda or docker)
-- snpEff (`~/Software/snpEff/`)
-- TransVar (via pip)
-- CancerVar
-
-### Databases
-- ANNOVAR humandb (`~/Databases/humandb/`)
-- HG38 reference (`~/Databases/WholeGenomeFASTA/GRCh38/`)
-
-### Python Packages
-```bash
-pip install openpyxl
-```
-
-### IGV Requirements
-- Java 8 (`/usr/lib/jvm/java-8-openjdk-amd64/bin/java`)
-- IGV jar file
-- xvfb-run (for headless operation)
-
-## Output Structure
-
-```
-output-hg38/
-├── bam/                    # Input BAM files
-├── vcf/                    # Input VCF files
-├── Combine.xlsx            # Combined annotation results
-├── SnapShots/              # IGV screenshots (sample-chr-pos.png)
-└── html_report/
-    ├── index.html          # Landing page with sample cards
-    └── samples/
-        ├── sample1.html    # Sample variant table
-        └── variants/
-            └── sample1_var0.html  # Variant detail pages
-```
-
-## Docker Container
-
-The Docker container packages all annotation tools (ANNOVAR, VEP, snpEff, TransVar, CancerVar, IGV) in a single image. Databases are mounted at runtime to keep the image size manageable.
-
-### Quick Start
+### 1. Clone the repository
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/alvin8-git/hg38annotate.git
+git clone git@github.com:alvin8-git/hg38annotate.git
 cd hg38annotate
-
-# 2. Download and extract annotation tools from release
-wget https://github.com/alvin8-git/hg38annotate/releases/download/v1.0.0/Software.tar.gz
-tar -xzf Software.tar.gz
-
-# 3. Build the image
-docker build -t hg38annotate:latest .
-
-# 4. Run with databases mounted
-docker run -v ${HOME}/Databases:/home/user/Databases:ro \
-           -v $(pwd)/data:/data \
-           hg38annotate:latest processVCF-hg38.sh
 ```
 
-### Prerequisites
+### 2. Download and extract annotation tools
 
-Before building, you need the annotation tools in the build context. Choose one option:
+The annotation tools (ANNOVAR, snpEff, VEP) are too large for git and are distributed as a release archive.
 
-**Option 1: Download from GitHub Release (recommended)**
 ```bash
-cd /path/to/hg38annotate
 wget https://github.com/alvin8-git/hg38annotate/releases/download/v1.0.0/Software.tar.gz
 tar -xzf Software.tar.gz
 ```
 
-**Option 2: Copy from local installation**
-```bash
-cd /path/to/hg38annotate
-cp -r ~/Software/annovar ./annovar
-cp -r ~/Software/snpEff ./snpEff
-cp -r ~/Software/CancerVar ./CancerVar
-cp -r ~/Software/ensembl-vep ./ensembl-vep
+This extracts the following directories into the repo root (required for `docker build`):
+
+```
+annovar/          # ANNOVAR perl scripts (legacy, bundled in image)
+snpEff/           # snpEff jar + scripts
+ensembl-vep/      # VEP software (cache mounted at runtime)
 ```
 
-**Note:** These directories are excluded from git via `.gitignore` since they contain large binaries.
+> **annovar-fast** (the primary ANNOVAR replacement) and **humandb-tbi** (tabix-indexed databases) are mounted at runtime — see [Runtime Mounts](#runtime-mounts).
 
-### Building the Image
+### 3. Build the Docker image
 
 ```bash
-# Standard build
 docker build -t hg38annotate:latest .
-
-# Or with docker-compose
-docker-compose build
 ```
 
-### Running the Container
+Build time: ~10 minutes (VEP module installation). Subsequent builds use cached layers.
+Image size: ~2 GB (excluding mounted databases).
 
-**Interactive shell:**
+## Docker Run
+
+### Interactive shell
+
 ```bash
-docker run -it --rm \
-    -v ${HOME}/Databases:/home/user/Databases:ro \
-    -v $(pwd)/data:/data \
+docker run --rm -it \
+    -v /path/to/Databases:/home/user/Databases:ro \
+    -v /path/to/annovar-fast:/path/to/annovar-fast:ro \
+    -v /path/to/humandb-tbi:/path/to/humandb-tbi:ro \
+    -v /path/to/data:/data \
     hg38annotate:latest bash
 ```
 
-**Run full pipeline:**
+### Run full pipeline
+
 ```bash
 docker run --rm \
-    -v ${HOME}/Databases:/home/user/Databases:ro \
-    -v $(pwd)/data:/data \
-    hg38annotate:latest processVCF-hg38.sh
+    -v /path/to/Databases:/home/user/Databases:ro \
+    -v /path/to/annovar-fast:/path/to/annovar-fast:ro \
+    -v /path/to/humandb-tbi:/path/to/humandb-tbi:ro \
+    -v /path/to/data:/data \
+    hg38annotate:latest bash -c "cd /data/vcf && processVCF-hg38.sh"
 ```
 
-**Run annotation only:**
+### Example `run_docker.sh`
+
+The included `run_docker.sh` shows a working example for a local setup:
+
 ```bash
-docker run --rm \
-    -v ${HOME}/Databases:/home/user/Databases:ro \
-    -v $(pwd)/data:/data \
-    hg38annotate:latest mergeVCFannotation-optimized-hg38.sh /data/sample.vcf
+docker run --rm -it \
+    -v /data/alvin/Databases:/home/user/Databases:ro \
+    -v /data/alvin/hg38annotate/TestData:/data \
+    -v /data/alvin/annovar/annovar-fast:/data/alvin/annovar/annovar-fast:ro \
+    -v /data/alvin/annovar/humandb-tbi:/data/alvin/annovar/humandb-tbi:ro \
+    hg38annotate:latest bash
 ```
 
-**Using docker-compose:**
+### Runtime Mounts
+
+| Host path | Container path | Description |
+|-----------|---------------|-------------|
+| `~/Databases` | `/home/user/Databases` | All HG38 reference databases (see below) |
+| `/path/to/annovar-fast` | same path inside container | annovar-fast scripts + cancervar-fast |
+| `/path/to/humandb-tbi` | same path inside container | Tabix-indexed ANNOVAR databases |
+| `/path/to/data` | `/data` | Input VCF/BAM files and pipeline output |
+
+> annovar-fast and humandb-tbi must be mounted at the **same absolute path** inside the container as on the host. The `ANNOVAR_FAST` and `CANCERVAR_FAST` environment variables in the Dockerfile point to the host paths.
+
+#### Database directory layout (`~/Databases`)
+
+| Path | Description |
+|------|-------------|
+| `Databases/GRCh38/hg38.fa` | GRCh38 reference FASTA |
+| `Databases/vep/` | VEP GRCh38 RefSeq cache (~28 GB) |
+| `Databases/snpEff/` | snpEff GRCh38.p13.RefSeq database |
+| `Databases/SG10K.hg38.vcf/` | SG10K Singapore population (HG38) |
+| `Databases/genomeAsia/` | GenomeAsia 100K database |
+
+## Testing
+
+TestData with 4 iSeq panel VCF samples is included in `TestData/vcf/`.
+
+### Run the full pipeline on TestData
+
 ```bash
-# Interactive shell
-docker-compose run --rm hg38annotate
-
-# Development mode (scripts mounted as writable)
-docker-compose run --rm hg38annotate-dev
+docker run --rm -it \
+    -v /path/to/Databases:/home/user/Databases:ro \
+    -v /path/to/annovar-fast:/path/to/annovar-fast:ro \
+    -v /path/to/humandb-tbi:/path/to/humandb-tbi:ro \
+    -v $(pwd)/TestData:/data \
+    hg38annotate:latest bash -c "cd /data/vcf && bash /home/user/Scripts/processVCF-hg38.sh"
 ```
 
-### Required Database Mounts (HG38/GRCh38)
+Expected results:
+- **Annotation stage**: ~33 seconds, produces `TestData/output/*.xlsx` (5 files including `Combine.xlsx`)
+- **IGV stage**: 1 PNG snapshot (`iSeq-001-S02_S82-9-5070033.png`) — the only sample with a filtered variant
+- **HTML stage**: `TestData/output/html_reports/Summary.html` + 4 sample pages
 
-| Local Path | Container Mount | Description |
-|------------|-----------------|-------------|
-| `~/Databases/humandb` | `/home/user/Databases/humandb` | ANNOVAR hg38 databases |
-| `~/Databases/hg38` | `/home/user/Databases/GRCh38` | GRCh38 reference (hg38.fa) |
-| `~/Databases/vep` | `/home/user/Databases/vep` | VEP GRCh38 RefSeq cache |
-| `~/Databases/snpEff` | `/home/user/Databases/snpEff` | snpEff GRCh38.p13.RefSeq |
-| `~/Databases/SG10K.hg38.vcf` | `/home/user/Databases/SG10K.hg38.vcf` | SG10K HG38 population |
-| `~/Databases/iSeq` | `/home/user/Databases/iSeq` | iSeq reference VCFs |
+### Run individual stages
 
-### Included Tools and Versions
+```bash
+# Inside the container (cd /data/vcf first)
+processVCF-hg38.sh --annotate        # Annotation only
+processVCF-hg38.sh --igv             # IGV snapshots only
+processVCF-hg38.sh --html            # HTML reports only
 
-| Tool | Version | Purpose |
-|------|---------|---------|
-| ANNOVAR | Latest | Functional annotation |
-| VEP | 105.0 | Ensembl variant effect prediction |
-| snpEff | 5.0e | Variant annotation and effect prediction |
-| TransVar | Latest | HGVS notation annotation (hg38 configured) |
-| CancerVar | Latest | Cancer variant interpretation |
-| IGV | 2.3.81 | Screenshot generation (Java 8) |
+processVCF-hg38.sh --from-igv        # IGV + HTML
+processVCF-hg38.sh --from-html       # HTML only
 
-### Service Configurations
+processVCF-hg38.sh --html --force    # Force re-run HTML even if complete
+processVCF-hg38.sh --status          # Check which stages are complete
+```
 
-The `docker-compose.yml` provides three service configurations:
-
-1. **hg38annotate** - Full setup with all databases from `${HOME}/Databases`
-2. **hg38annotate-minimal** - Minimal with specific database path mounts
-3. **hg38annotate-dev** - Development mode with writable script mounts for testing
-
-### Verify Installation
-
-Run the dependency check script to verify all tools are properly installed:
+### Verify tool installation
 
 ```bash
 docker run --rm hg38annotate:latest /home/user/Scripts/check_docker_deps.sh
 ```
 
-Expected output shows 49 passed checks with warnings only for unmounted databases.
+## Pipeline Overview
 
-### Testing Individual Tools
+```
+Input: VCF files in vcf/
+         │
+         ▼
+┌─────────────────────────────────────────────┐
+│  Stage 1: Annotation (~33s for 8 variants)  │
+│                                             │
+│  Merge VCFs ──► annovar-fast  ─┐            │
+│                 VEP            ├──► Excel   │
+│                 snpEff         │   (per     │
+│                 TransVar       │   sample + │
+│                 cancervar-fast ┘   Combine) │
+└─────────────────────────────────────────────┘
+         │
+         ▼
+┌──────────────────────────────────┐
+│  Stage 2: IGV Snapshots          │
+│                                  │
+│  Filtered variants ──► BED files │
+│  BAM + BED ──► xvfb + IGV ──► PNG│
+└──────────────────────────────────┘
+         │
+         ▼
+┌──────────────────────────────────────────┐
+│  Stage 3: HTML Reports                   │
+│                                          │
+│  Per-sample xlsx ──► Sample pages        │
+│                  ──► Variant detail pages│
+│                  ──► Summary.html        │
+└──────────────────────────────────────────┘
+```
+
+## Output Structure
+
+```
+output/
+├── iSeq-001-S01_S81.xlsx       # Per-sample annotation (Filter, Annotation, Check sheets)
+├── iSeq-001-S02_S82.xlsx
+├── Combine.xlsx                 # All samples combined
+├── SnapShots/
+│   └── iSeq-001-S02_S82-9-5070033.png   # sample-chr-pos.png
+└── html_reports/
+    ├── Summary.html             # Landing page linking to all samples
+    ├── index.html               # Last-generated sample index
+    └── samples/
+        ├── iSeq-001-S02_S82.html        # Variant table for this sample
+        └── variants/
+            └── iSeq-001-S02_S82_var0.html  # Per-variant detail page
+```
+
+## Tools and Versions
+
+| Tool | Version | Role |
+|------|---------|------|
+| annovar-fast | — | Fast tabix-based functional annotation (replaces ANNOVAR) |
+| cancervar-fast | — | Cancer variant classification Tier I–IV (replaces CancerVar) |
+| VEP | 105 | Ensembl Variant Effect Predictor |
+| snpEff | 5.0e | Variant annotation and splice effect prediction |
+| TransVar | 2.5.10 | HGVS nomenclature annotation |
+| bcftools | 1.13 | VCF merge/filter |
+| IGV | 2.3.81 | Screenshot generation (requires Java 8) |
+| Python | 3.10 | Report generation (openpyxl, pysam, cyvcf2, transvar) |
+
+## Environment Variables
+
+Override default tool paths at runtime:
 
 ```bash
-# Test ANNOVAR
-docker run --rm hg38annotate:latest \
-    perl /home/user/Software/annovar/table_annovar.pl 2>&1 | head -5
-
-# Test VEP
-docker run --rm hg38annotate:latest vep --help | head -10
-
-# Test snpEff
-docker run --rm hg38annotate:latest \
-    java -jar /home/user/Software/snpEff/snpEff.jar -version
-
-# Test TransVar (hg38)
-docker run --rm hg38annotate:latest transvar config --refversion hg38
+docker run --rm \
+    -e ANNOVAR_FAST=/custom/path/annovar-fast.py \
+    -e CANCERVAR_FAST=/custom/path/cancervar-fast.py \
+    -e VEP_CACHE=/home/user/Databases/vep \
+    -e HG38_FASTA=/home/user/Databases/GRCh38/hg38.fa \
+    -e IGV_JAR=/home/user/Software/IGV/IGV_2.3.81/igv.jar \
+    ...
 ```
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ANNOVAR_FAST` | `/data/alvin/annovar/annovar-fast/annovar-fast.py` | Path to annovar-fast.py |
+| `CANCERVAR_FAST` | `/data/alvin/annovar/annovar-fast/cancervar-fast.py` | Path to cancervar-fast.py |
+| `VEP_CACHE` | `$HOME/Databases/vep` | VEP cache directory |
+| `HG38_FASTA` | `$HOME/Databases/GRCh38/hg38.fa` | Reference FASTA |
+| `IGV_JAR` | `$HOME/Software/IGV/IGV_2.3.81/igv.jar` | IGV jar path |
+| `JAVA8_PATH` | `/usr/lib/jvm/java-8-openjdk-amd64/bin/java` | Java 8 for IGV |
+
+## Scripts
+
+| Script | Description |
+|--------|-------------|
+| `processVCF-hg38.sh` | Main pipeline orchestrator — runs all 3 stages with status tracking |
+| `mergeVCFannotation-optimized-hg38.sh` | Parallel annotation engine (annovar-fast, VEP, snpEff, TransVar, cancervar-fast) |
+| `make_IGV_snapshots.py` | Headless IGV automation via xvfb |
+| `excel_to_html_report.py` | Converts per-sample xlsx to interactive HTML variant reports |
+| `check_docker_deps.sh` | Verifies all tools and databases are available inside the container |
 
 ## License
 
-Clinical Genomics Pipeline - Internal Use
+Internal use — Clinical Genomics Pipeline.
