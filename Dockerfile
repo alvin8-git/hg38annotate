@@ -93,7 +93,7 @@ RUN cpanm --notest Excel::Writer::XLSX
 # PYTHON PACKAGES (TransVar, openpyxl for HTML reports)
 # =============================================================================
 
-RUN pip3 install --no-cache-dir transvar openpyxl
+RUN pip3 install --no-cache-dir transvar openpyxl pysam cyvcf2
 
 # Configure TransVar with hg38 reference
 # Download annotation databases and create config pointing to mounted reference genome
@@ -143,13 +143,6 @@ RUN chmod +x /home/$USERNAME/Software/snpEff/scripts/*.pl \
     ln -sf /home/$USERNAME/Databases/snpEff /home/$USERNAME/Software/snpEff/data
 
 # =============================================================================
-# CancerVar (copy from local)
-# =============================================================================
-
-COPY --chown=$USERNAME:$USERNAME CancerVar/ /home/$USERNAME/Software/CancerVar/
-RUN chmod +x /home/$USERNAME/Software/CancerVar/*.py
-
-# =============================================================================
 # IGV (Integrative Genomics Viewer) for snapshots
 # IGV 2.3.81 requires Java 8
 # =============================================================================
@@ -196,6 +189,8 @@ RUN chmod +x /home/$USERNAME/Scripts/*.sh /home/$USERNAME/Scripts/*.py
 ENV HOME=/home/$USERNAME
 ENV PATH="/home/$USERNAME/Software/annovar:/home/$USERNAME/Software/snpEff:/home/$USERNAME/Software/ensembl-vep:/home/$USERNAME/Scripts:$PATH"
 ENV PERL5LIB="/home/$USERNAME/Software/ensembl-vep/modules"
+ENV ANNOVAR_FAST=/data/alvin/annovar/annovar-fast/annovar-fast.py
+ENV CANCERVAR_FAST=/data/alvin/annovar/annovar-fast/cancervar-fast.py
 
 # =============================================================================
 # ENTRYPOINT SCRIPT

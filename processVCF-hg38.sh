@@ -104,7 +104,7 @@ process_iseq() {
     # Start annotation processing
     if [ ! -f Combine.xlsx ]; then
         log_info "Running mergeVCFannotation-optimized-hg38.sh..."
-        "$SCRIPT_DIR/mergeVCFannotation-optimized-hg38.sh" iseq
+        bash "$SCRIPT_DIR/mergeVCFannotation-optimized-hg38.sh" iseq
     else
         log_info "Excel files already exist, skipping annotation..."
     fi

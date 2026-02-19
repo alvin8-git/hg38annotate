@@ -41,8 +41,8 @@ DATABASES_DIR="$HOME_DIR/Databases"
 
 # Annotation tools
 ANNOVAR_FAST="${ANNOVAR_FAST:-/data/alvin/annovar/annovar-fast/annovar-fast.py}"
+CANCERVAR_FAST="${CANCERVAR_FAST:-/data/alvin/annovar/annovar-fast/cancervar-fast.py}"
 SNPEFF_DIR="${SNPEFF_DIR:-$SOFTWARE_DIR/snpEff}"
-CANCERVAR_DIR="${CANCERVAR_DIR:-$SOFTWARE_DIR/CancerVar}"
 
 # Databases
 HUMANDB="${HUMANDB:-$DATABASES_DIR/humandb}"
@@ -353,23 +353,16 @@ run_cancervar() {
 
     [ -f "$sample.CancerVar.txt" ] && return 0
 
-    if [ ! -f "$CANCERVAR_DIR/CancerVar.py" ]; then
-        log_warn "CancerVar not found, skipping"
+    if [ ! -f "$CANCERVAR_FAST" ]; then
+        log_warn "CancerVar-fast not found, skipping"
         return 0
     fi
 
-    log_info "Starting CancerVar for $sample"
+    log_info "Starting CancerVar-fast for $sample"
 
-    python3 "$CANCERVAR_DIR/CancerVar.py" \
-        -b hg38 \
-        -i "$vcf" \
-        --input_type=VCF \
-        -o "$sample.CancerVar" 2>/dev/null
+    python3 "$CANCERVAR_FAST" "$vcf" -o "$sample.CancerVar.txt"
 
-    mv "$sample.CancerVar.hg38_multianno.txt.cancervar" "$sample.CancerVar.txt"
-    rm -f "$sample.CancerVar.hg38_multianno.txt"* "$sample.vcf.avinput"
-
-    log_success "CancerVar completed for $sample"
+    log_success "CancerVar-fast completed for $sample"
 }
 
 run_sg10k() {
@@ -530,12 +523,7 @@ merge_vcfs() {
     # Merge
     vcf-merge -c none -s $(ls *.sort.gz | tr '\n' ' ') | vcf-sort -c > "$sample.vcf"
 
-    # Create combined VCF for CancerVar
-    parallel --jobs 1 "egrep -v \"^#\" {} >> $sample.All.vcf" :::: VCFlist.txt
-    awk -F"\t" 'NR==FNR{a[$1"_"$2"_"$4"_"$5]=$0;next}($1"_"$2"_"$4"_"$5 in a){print a[$1"_"$2"_"$4"_"$5]}' \
-        "$sample.All.vcf" "$sample.vcf" | sort -k1,1V -k2,2n > "$sample.Allsort.vcf"
-
-    rm -f *.sort.gz *.sort.gz.tbi "$sample.All.vcf"
+    rm -f *.sort.gz *.sort.gz.tbi
 
     log_success "VCF merging completed"
 }
@@ -548,7 +536,7 @@ run_annotations_parallel() {
     log_step "RUNNING ANNOTATIONS IN PARALLEL"
 
     export -f run_annovar run_vep run_snpeff run_transvar log_info log_success log_warn
-    export ANNOVAR_FAST SNPEFF_DIR VEP_CACHE HG38_FASTA REFSEQ_TRANSCRIPTS
+    export ANNOVAR_FAST CANCERVAR_FAST SNPEFF_DIR VEP_CACHE HG38_FASTA REFSEQ_TRANSCRIPTS
 
     log_info "Starting parallel annotation (ANNOVAR, VEP, snpEff, TransVar)..."
 
@@ -563,8 +551,7 @@ run_annotations_parallel() {
     log_success "Core annotations completed"
 
     log_info "Running CancerVar..."
-    run_cancervar "$sample.Allsort.vcf"
-    [ -f "$sample.Allsort.CancerVar.txt" ] && mv "$sample.Allsort.CancerVar.txt" "$sample.CancerVar.txt"
+    run_cancervar "$sample.vcf"
 
     log_info "Running database lookups in parallel (SG10K, GenomeAsia)..."
     (
