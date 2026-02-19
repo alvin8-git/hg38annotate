@@ -344,7 +344,8 @@ generate_html_reports() {
 
     cd "$output_dir"
 
-    # Create html_reports directory
+    # Recreate html_reports directory to remove stale files from previous runs
+    rm -rf html_reports
     mkdir -p html_reports
 
     local xlsx_count=0
@@ -354,7 +355,7 @@ generate_html_reports() {
         local sample_name=$(basename "$xlsx" .xlsx)
 
         # Generate dashboard + variant pages in html_reports directory
-        python3 "$html_script" "$xlsx" "html_reports"
+        python3 "$html_script" "$xlsx" "html_reports" "SnapShots"
 
         if [ $? -eq 0 ]; then
             xlsx_count=$((xlsx_count + 1))

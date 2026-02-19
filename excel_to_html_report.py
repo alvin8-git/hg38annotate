@@ -456,8 +456,18 @@ class iSeqReportGenerator:
         self.headers = [str(h) if h else f"Column_{i+1}" for i, h in enumerate(header_row)]
         print(f"Found {len(self.headers)} columns")
 
+        # Detect per-sample xlsx (no SAMPLE column): col 1 is Chr, not SAMPLE.
+        # Prepend a synthetic SAMPLE column so all KEY_COLS/COLUMN_GROUPS stay correct.
+        is_per_sample = self.headers[0].upper() != "SAMPLE"
+        if is_per_sample:
+            inferred_sample = self.excel_path.stem
+            self.headers = ["SAMPLE"] + self.headers
+            print(f"Per-sample format detected, using sample name: {inferred_sample}")
+
         for row_idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True)):
             row_data = list(row)
+            if is_per_sample:
+                row_data = [inferred_sample] + row_data
             while len(row_data) < len(self.headers):
                 row_data.append(None)
             self.rows.append(row_data)
@@ -942,10 +952,80 @@ class iSeqReportGenerator:
         print(f"  - Variant pages: {variants_dir}")
 
 
+def generate_summary_page(html_dir: str):
+    """Generate Summary.html landing page from existing sample HTML files."""
+    html_path = Path(html_dir)
+    samples_dir = html_path / "samples"
+
+    # Collect sample names from existing HTML files
+    sample_files = sorted(samples_dir.glob("*.html")) if samples_dir.exists() else []
+
+    date_str = ""
+    try:
+        from datetime import date
+        date_str = date.today().strftime("%Y-%m-%d")
+    except Exception:
+        pass
+
+    cards_html = ""
+    for sf in sample_files:
+        sample_name = sf.stem
+        cards_html += f'''
+            <a href="samples/{escape(sf.name)}" class="sample-card">
+                <div class="sample-card-header">
+                    <h3>{escape(sample_name)}</h3>
+                </div>
+                <div class="sample-card-body">
+                    <div class="sample-stat">
+                        <span class="sample-stat-label">Report</span>
+                        <span class="sample-stat-value">View</span>
+                    </div>
+                </div>
+            </a>'''
+
+    html = f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iSeq Variant Analysis Summary</title>
+    <style>{get_css_styles()}</style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>iSeq Variant Analysis Summary</h1>
+            <div class="subtitle">Generated: {date_str} &mdash; {len(sample_files)} sample(s)</div>
+        </div>
+        <div class="dashboard-stats">
+            <div class="stat-card">
+                <div class="stat-value">{len(sample_files)}</div>
+                <div class="stat-label">Samples</div>
+            </div>
+        </div>
+        <div class="sample-grid">
+            {cards_html}
+        </div>
+    </div>
+</body>
+</html>'''
+
+    summary_file = html_path / "Summary.html"
+    summary_file.write_text(html)
+    print(f"Generated: {summary_file}")
+
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: python3 excel_to_html_report.py <input_excel_file> [output_directory] [snapshots_directory]")
         sys.exit(1)
+
+    if sys.argv[1] == "--summary":
+        if len(sys.argv) < 3:
+            print("Usage: python3 excel_to_html_report.py --summary <html_reports_directory>")
+            sys.exit(1)
+        generate_summary_page(sys.argv[2])
+        return
 
     excel_path = sys.argv[1]
     if not os.path.isfile(excel_path):
