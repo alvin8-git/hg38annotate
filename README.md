@@ -145,10 +145,10 @@ docker run --rm -it \
     hg38annotate:latest bash -c "cd /data/vcf && bash /home/user/Scripts/processVCF-hg38.sh"
 ```
 
-Expected results:
-- **Annotation stage**: ~35 seconds, produces `TestData/output/*.xlsx` (6 files: 5 per-sample + `Combine.xlsx`), 27 variants total
-- **IGV stage**: 10 PNG snapshots across all 5 samples (S02×1, S12×1, S26×3, S32×1, S51×4)
-- **HTML stage**: `TestData/output/html_reports/Summary.html` + 5 sample pages with ACMG chips, ClinVar, and prediction scores
+Expected results (total pipeline ~2 minutes):
+- **Annotation stage**: ~33 seconds, produces `TestData/output/*.xlsx` (6 files: 5 per-sample + `Combine.xlsx`), 27 variants across 5 samples
+- **IGV stage**: 10 PNG snapshots — one per filtered variant per sample (S02×1, S12×1, S26×3, S32×1, S51×4)
+- **HTML stage**: `TestData/output/html_reports/Summary.html` + 5 sample pages + 10 per-variant detail pages with embedded IGV screenshots, ACMG chips, ClinVar, and prediction scores
 
 ### Run individual stages
 
