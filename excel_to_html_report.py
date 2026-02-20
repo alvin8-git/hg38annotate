@@ -34,59 +34,84 @@ except ImportError:
     sys.exit(1)
 
 
-# Column group definitions (1-indexed)
-COLUMN_GROUPS = {
-    "basic_info": list(range(2, 20)),
-    "sample_comparison": list(range(20, 22)),
-    "additional_info": list(range(22, 31)),
-    "population_freq": list(range(31, 89)),
-    "acmg_criteria": list(range(89, 123)),
-    "computational": list(range(123, 153)),
+# Key column names: logical key -> xlsx header name
+KEY_COL_NAMES = {
+    "sample": "SAMPLE", "chr": "Chr", "pos": "Pos", "ref": "Ref", "alt": "Alt", "gt": "GT",
+    "gene": "GENE", "transcript": "Transcript", "hgvsg": "HGVSg", "hgvsc": "HGVSc", "hgvsp": "HGVSp",
+    "ad": "AD", "dp": "DP", "qual": "QUAL", "vaf": "VAF",
 }
 
-# Key column indices (1-indexed)
-KEY_COLS = {
-    "sample": 1, "chr": 2, "pos": 3, "ref": 4, "alt": 5, "gt": 6,
-    "gene": 7, "transcript": 8, "hgvsg": 9, "hgvsc": 10, "hgvsp": 11,
-    "ad": 12, "dp": 13, "qual": 14, "vaf": 15,
+# Column group header names (defines display order within each panel)
+COLUMN_GROUP_NAMES = {
+    "basic_info": [
+        "Chr", "Pos", "Ref", "Alt", "GT", "GENE", "Transcript", "HGVSg", "HGVSc", "HGVSp",
+        "AD", "DP", "QUAL", "VAF", "snp141",
+        "GENE:Chr(GRCh38):HGVSg; Transcript(GENE):HGVSc;HGVSp(0% VAF)",
+        "cosmic91", "CancerVar and Evidence",
+    ],
+    "sample_comparison": ["iSeq305", "TMSP1024"],
+    "additional_info": [
+        "FILTER", "ExonicFunc.refGene", "Func.ensGene", "cytoBand",
+        "Consequence", "STRAND", "VARIANT_CLASS", "EXON", "INTRON",
+    ],
+    "population_freq": [
+        "AF_All", "AF_CHS", "AF_INS", "AF_MAS",
+        "esp6500siv2_all",
+        "ExAC_ALL", "ExAC_AFR", "ExAC_AMR", "ExAC_EAS", "ExAC_FIN", "ExAC_NFE", "ExAC_OTH", "ExAC_SAS",
+        "1000g2015aug_all", "1000g2015aug_afr", "1000g2015aug_eas",
+        "1000g2015aug_amr", "1000g2015aug_eur", "1000g2015aug_sas",
+        "Kaviar_AF", "Kaviar_AC", "Kaviar_AN",
+        "gnomad41_exome_AF", "gnomad41_exome_AF_afr", "gnomad41_exome_AF_sas",
+        "gnomad41_exome_AF_amr", "gnomad41_exome_AF_eas", "gnomad41_exome_AF_nfe",
+        "gnomad41_exome_AF_fin", "gnomad41_exome_AF_asj", "gnomad41_exome_AF_remaining",
+        "gnomad41_genome_AF", "gnomad41_genome_AF_afr", "gnomad41_genome_AF_amr",
+        "gnomad41_genome_AF_asj", "gnomad41_genome_AF_eas", "gnomad41_genome_AF_fin",
+        "gnomad41_genome_AF_nfe", "gnomad41_genome_AF_remaining",
+        "HRC_AF", "HRC_AC", "HRC_AN", "HRC_non1000G_AF", "HRC_non1000G_AC", "HRC_non1000G_AN",
+        "GME_AF", "GME_NWA", "GME_NEA", "GME_AP", "GME_Israel", "GME_SD", "GME_TP", "GME_CA",
+        "cg69", "nci60",
+    ],
 }
 
-# ACMG criteria chip definitions: (col_index, label, css_class)
-ACMG_GROUPS = {
-    "Very Strong Pathogenic": [(90, "PVS1", "pvs")],
-    "Strong Pathogenic": [(91, "PS1", "ps"), (92, "PS2", "ps"), (93, "PS3", "ps"), (94, "PS4", "ps")],
-    "Moderate Pathogenic": [(95, "PM1", "pm"), (96, "PM2", "pm"), (97, "PM3", "pm"), (98, "PM4", "pm"), (99, "PM5", "pm"), (100, "PM6", "pm")],
-    "Supporting Pathogenic": [(101, "PP1", "pp"), (102, "PP2", "pp"), (103, "PP3", "pp"), (104, "PP4", "pp"), (105, "PP5", "pp")],
-    "Stand-Alone Benign": [(106, "BA1", "ba")],
-    "Strong Benign": [(107, "BS1", "bs"), (108, "BS2", "bs"), (109, "BS3", "bs"), (110, "BS4", "bs")],
-    "Supporting Benign": [(111, "BP1", "bp"), (112, "BP2", "bp"), (113, "BP3", "bp"), (114, "BP4", "bp"), (115, "BP5", "bp"), (116, "BP6", "bp"), (117, "BP7", "bp")],
+# ACMG criteria chip definitions: (header_name, label, css_class)
+ACMG_CRITERIA = {
+    "Very Strong Pathogenic": [("PVS1", "PVS1", "pvs")],
+    "Strong Pathogenic": [("PS1", "PS1", "ps"), ("PS2", "PS2", "ps"), ("PS3", "PS3", "ps"), ("PS4", "PS4", "ps")],
+    "Moderate Pathogenic": [("PM1", "PM1", "pm"), ("PM2", "PM2", "pm"), ("PM3", "PM3", "pm"),
+                            ("PM4", "PM4", "pm"), ("PM5", "PM5", "pm"), ("PM6", "PM6", "pm")],
+    "Supporting Pathogenic": [("PP1", "PP1", "pp"), ("PP2", "PP2", "pp"), ("PP3", "PP3", "pp"),
+                               ("PP4", "PP4", "pp"), ("PP5", "PP5", "pp")],
+    "Stand-Alone Benign": [("BA1", "BA1", "ba")],
+    "Strong Benign": [("BS1", "BS1", "bs"), ("BS2", "BS2", "bs"), ("BS3", "BS3", "bs"), ("BS4", "BS4", "bs")],
+    "Supporting Benign": [("BP1", "BP1", "bp"), ("BP2", "BP2", "bp"), ("BP3", "BP3", "bp"),
+                          ("BP4", "BP4", "bp"), ("BP5", "BP5", "bp"), ("BP6", "BP6", "bp"), ("BP7", "BP7", "bp")],
 }
 
-# ClinVar columns
-CLINVAR_COLS = [118, 119, 120, 121, 122]
+# ClinVar column header names
+CLINVAR_COL_NAMES = ["CLNALLELEID", "CLNDN", "CLNDISDB", "CLNREVSTAT", "CLNSIG"]
 
-# Prediction score columns: (score_col, pred_col or None, label)
-PREDICTION_SCORES = [
-    (123, None, "M-CAP"),
-    (124, None, "REVEL"),
-    (125, 126, "SIFT"),
-    (127, 128, "PolyPhen2 HDIV"),
-    (129, 130, "PolyPhen2 HVAR"),
-    (131, 132, "LRT"),
-    (133, 134, "MutationTaster"),
-    (135, 136, "MutationAssessor"),
-    (137, 138, "FATHMM"),
-    (139, 140, "RadialSVM"),
-    (141, 142, "LR"),
-    (143, None, "VEST3"),
-    (144, 145, "CADD"),
-    (146, None, "GERP++"),
-    (147, None, "phyloP46way"),
-    (148, None, "phyloP100way"),
-    (149, None, "SiPhy"),
-    (150, None, "phastCons30way"),
-    (151, None, "phastCons100way"),
-    (152, None, "targetScanS"),
+# Prediction score columns: (score_header, pred_header or None, display_label)
+PREDICTION_SCORE_NAMES = [
+    ("MCAP", None, "M-CAP"),
+    ("REVEL", None, "REVEL"),
+    ("SIFT_score", "SIFT_pred", "SIFT"),
+    ("Polyphen2_HDIV_score", "Polyphen2_HDIV_pred", "PolyPhen2 HDIV"),
+    ("Polyphen2_HVAR_score", "Polyphen2_HVAR_pred", "PolyPhen2 HVAR"),
+    ("LRT_score", "LRT_pred", "LRT"),
+    ("MutationTaster_score", "MutationTaster_pred", "MutationTaster"),
+    ("MutationAssessor_score", "MutationAssessor_pred", "MutationAssessor"),
+    ("FATHMM_score", "FATHMM_pred", "FATHMM"),
+    ("MetaSVM_score", "MetaSVM_pred", "RadialSVM"),
+    ("MetaLR_score", "MetaLR_pred", "LR"),
+    ("VEST4_score", None, "VEST4"),
+    ("CADD_raw", "CADD_phred", "CADD"),
+    ("GERP++_RS", None, "GERP++"),
+    ("phyloP30way_mammalian", None, "phyloP30way"),
+    ("phyloP100way_vertebrate", None, "phyloP100way"),
+    ("SiPhy_29way_logOdds", None, "SiPhy"),
+    ("phastConsElements30way", None, "phastCons30way"),
+    ("phastConsElements100way", None, "phastCons100way"),
+    ("targetScanS", None, "targetScanS"),
 ]
 
 
@@ -447,6 +472,7 @@ class iSeqReportGenerator:
         self.headers: List[str] = []
         self.rows: List[List[Any]] = []
         self.samples: Dict[str, List[int]] = defaultdict(list)
+        self.col_idx: Dict[str, int] = {}
 
     def load_excel(self):
         print(f"Loading Excel file: {self.excel_path}")
@@ -457,7 +483,7 @@ class iSeqReportGenerator:
         print(f"Found {len(self.headers)} columns")
 
         # Detect per-sample xlsx (no SAMPLE column): col 1 is Chr, not SAMPLE.
-        # Prepend a synthetic SAMPLE column so all KEY_COLS/COLUMN_GROUPS stay correct.
+        # Prepend a synthetic SAMPLE column so all column name lookups stay correct.
         is_per_sample = self.headers[0].upper() != "SAMPLE"
         if is_per_sample:
             inferred_sample = self.excel_path.stem
@@ -476,6 +502,31 @@ class iSeqReportGenerator:
 
         wb.close()
         print(f"Loaded {len(self.rows)} variants from {len(self.samples)} samples")
+
+        # Build header-name → 1-based column index mapping (strip whitespace for robustness)
+        self.col_idx: Dict[str, int] = {}
+        for i, h in enumerate(self.headers, 1):
+            if h and not h.startswith("Column_"):
+                self.col_idx[h] = i
+                self.col_idx[h.strip()] = i
+
+    def _col(self, name: str) -> Optional[int]:
+        """Return 1-based column index by header name, or None if not found."""
+        return self.col_idx.get(name) or self.col_idx.get(name.strip())
+
+    def _cols(self, names: List[str]) -> List[int]:
+        """Return list of 1-based column indices for the given header names, skipping missing."""
+        result = []
+        for name in names:
+            idx = self._col(name)
+            if idx:
+                result.append(idx)
+        return result
+
+    def _val_n(self, row_idx: int, name: str) -> str:
+        """Get cell value by column header name."""
+        col = self._col(name)
+        return self._val(row_idx, col) if col else ""
 
     def _val(self, row_idx: int, col_idx: int) -> str:
         """Get cell value (1-indexed col), returns '' if empty"""
@@ -541,7 +592,7 @@ class iSeqReportGenerator:
         html = ''
 
         # InterVar classification
-        intervar = self._val(row_idx, 89)
+        intervar = self._val_n(row_idx, "InterVar_automated")
         if intervar:
             html += f'''
                 <div style="margin-bottom: 20px;">
@@ -553,14 +604,13 @@ class iSeqReportGenerator:
         html += '<div style="margin-bottom: 25px;">\n'
         html += '    <div class="data-label" style="margin-bottom: 10px;">ACMG Criteria</div>\n'
 
-        for group_name, criteria in ACMG_GROUPS.items():
+        for group_name, criteria in ACMG_CRITERIA.items():
             html += f'    <div style="margin-bottom: 8px;">\n'
             html += f'        <small style="color: var(--text-muted);">{escape(group_name)}</small>\n'
             html += '        <div class="acmg-grid">\n'
 
-            for col_idx, label, css_class in criteria:
-                value = self._val(row_idx, col_idx)
-                # Active if value is truthy and not "0"
+            for col_name, label, css_class in criteria:
+                value = self._val_n(row_idx, col_name)
                 is_active = bool(value) and value != "0"
                 chip_class = css_class if is_active else "inactive"
                 html += f'            <span class="acmg-chip {chip_class}">{label}</span>\n'
@@ -572,7 +622,7 @@ class iSeqReportGenerator:
 
         # ClinVar data
         clinvar_items = []
-        for col_idx in CLINVAR_COLS:
+        for col_idx in self._cols(CLINVAR_COL_NAMES):
             value = self._val(row_idx, col_idx)
             if value:
                 label = escape(self._header(col_idx))
@@ -593,9 +643,9 @@ class iSeqReportGenerator:
         rows_html = ''
         has_data = False
 
-        for score_col, pred_col, label in PREDICTION_SCORES:
-            score = self._val(row_idx, score_col)
-            pred = self._val(row_idx, pred_col) if pred_col else ""
+        for score_name, pred_name, label in PREDICTION_SCORE_NAMES:
+            score = self._val_n(row_idx, score_name)
+            pred = self._val_n(row_idx, pred_name) if pred_name else ""
 
             if not score and not pred:
                 continue
@@ -631,7 +681,7 @@ class iSeqReportGenerator:
     def _pop_freq_html(self, row_idx: int) -> str:
         """Generate population frequency section, skipping empty values"""
         items = []
-        for col_idx in COLUMN_GROUPS["population_freq"]:
+        for col_idx in self._cols(COLUMN_GROUP_NAMES["population_freq"]):
             value = self._val(row_idx, col_idx)
             if not value:
                 continue
@@ -695,7 +745,7 @@ class iSeqReportGenerator:
             row_indices = self.samples[sample_name]
             genes = set()
             for idx in row_indices:
-                g = self._val(idx, KEY_COLS["gene"])
+                g = self._val_n(idx, KEY_COL_NAMES["gene"])
                 if g:
                     genes.add(g)
 
@@ -756,7 +806,7 @@ class iSeqReportGenerator:
 
         genes = set()
         for idx in row_indices:
-            g = self._val(idx, KEY_COLS["gene"])
+            g = self._val_n(idx, KEY_COL_NAMES["gene"])
             if g:
                 genes.add(g)
 
@@ -783,15 +833,15 @@ class iSeqReportGenerator:
             <tbody>'''
 
         for i, row_idx in enumerate(row_indices):
-            gene = self._val(row_idx, KEY_COLS["gene"]) or "-"
-            chrom = self._val(row_idx, KEY_COLS["chr"]) or "-"
-            pos = self._val(row_idx, KEY_COLS["pos"]) or "-"
-            ref = self._val(row_idx, KEY_COLS["ref"]) or "-"
-            alt = self._val(row_idx, KEY_COLS["alt"]) or "-"
-            hgvsc = self._val(row_idx, KEY_COLS["hgvsc"]) or "-"
-            hgvsp = self._val(row_idx, KEY_COLS["hgvsp"]) or "-"
-            vaf = self._val(row_idx, KEY_COLS["vaf"]) or "-"
-            dp = self._val(row_idx, KEY_COLS["dp"]) or "-"
+            gene = self._val_n(row_idx, KEY_COL_NAMES["gene"]) or "-"
+            chrom = self._val_n(row_idx, KEY_COL_NAMES["chr"]) or "-"
+            pos = self._val_n(row_idx, KEY_COL_NAMES["pos"]) or "-"
+            ref = self._val_n(row_idx, KEY_COL_NAMES["ref"]) or "-"
+            alt = self._val_n(row_idx, KEY_COL_NAMES["alt"]) or "-"
+            hgvsc = self._val_n(row_idx, KEY_COL_NAMES["hgvsc"]) or "-"
+            hgvsp = self._val_n(row_idx, KEY_COL_NAMES["hgvsp"]) or "-"
+            vaf = self._val_n(row_idx, KEY_COL_NAMES["vaf"]) or "-"
+            dp = self._val_n(row_idx, KEY_COL_NAMES["dp"]) or "-"
 
             try:
                 vaf_num = float(vaf)
@@ -825,13 +875,13 @@ class iSeqReportGenerator:
     def generate_variant_page(self, sample_name: str, row_idx: int) -> str:
         safe_sample = re.sub(r'[^\w\-_]', '_', sample_name)
 
-        gene = self._val(row_idx, KEY_COLS["gene"]) or "Unknown"
-        chrom = self._val(row_idx, KEY_COLS["chr"]) or "-"
-        pos = self._val(row_idx, KEY_COLS["pos"]) or "-"
-        ref = self._val(row_idx, KEY_COLS["ref"]) or "-"
-        alt = self._val(row_idx, KEY_COLS["alt"]) or "-"
-        hgvsc = self._val(row_idx, KEY_COLS["hgvsc"]) or "-"
-        hgvsp = self._val(row_idx, KEY_COLS["hgvsp"]) or "-"
+        gene = self._val_n(row_idx, KEY_COL_NAMES["gene"]) or "Unknown"
+        chrom = self._val_n(row_idx, KEY_COL_NAMES["chr"]) or "-"
+        pos = self._val_n(row_idx, KEY_COL_NAMES["pos"]) or "-"
+        ref = self._val_n(row_idx, KEY_COL_NAMES["ref"]) or "-"
+        alt = self._val_n(row_idx, KEY_COL_NAMES["alt"]) or "-"
+        hgvsc = self._val_n(row_idx, KEY_COL_NAMES["hgvsc"]) or "-"
+        hgvsp = self._val_n(row_idx, KEY_COL_NAMES["hgvsp"]) or "-"
 
         igv_path = self.find_igv_screenshot(sample_name, chrom, pos)
         variant_html_dir = (self.output_dir / "samples" / "variants").resolve()
@@ -868,7 +918,7 @@ class iSeqReportGenerator:
         # 1. Basic Variant Information
         html += self._panel_html(
             "Basic Variant Information", "panel-basic",
-            self._data_grid_html(row_idx, COLUMN_GROUPS["basic_info"]),
+            self._data_grid_html(row_idx, self._cols(COLUMN_GROUP_NAMES["basic_info"])),
             collapsed=False
         )
 
@@ -889,14 +939,14 @@ class iSeqReportGenerator:
         # 3. Sample Comparison
         html += self._panel_html(
             "Sample Comparison Data", "panel-comparison",
-            self._data_grid_html(row_idx, COLUMN_GROUPS["sample_comparison"]),
+            self._data_grid_html(row_idx, self._cols(COLUMN_GROUP_NAMES["sample_comparison"])),
             collapsed=False
         )
 
         # 4. Additional Variant Information
         html += self._panel_html(
             "Additional Variant Information", "panel-additional",
-            self._data_grid_html(row_idx, COLUMN_GROUPS["additional_info"]),
+            self._data_grid_html(row_idx, self._cols(COLUMN_GROUP_NAMES["additional_info"])),
             collapsed=False
         )
 
