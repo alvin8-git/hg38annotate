@@ -27,33 +27,20 @@
 - [x] Fix column offset for per-sample xlsx (no SAMPLE col → prepend synthetic SAMPLE col)
 - [x] Fix IGV screenshots: pass `SnapShots/` as 3rd arg to HTML script
 - [x] Fix stale `chr9.html` in Summary.html: `rm -rf html_reports` before regenerating
+- [x] Fix ACMG / ClinVar / Predictions columns off by 2 — replaced all hardcoded 1-based
+  column indices with header-name lookup (`self.col_idx` dict + `_col()`, `_cols()`, `_val_n()`)
+  so report is resilient to column additions in either per-sample (149 col) or Combine (150 col) xlsx
+
+### Docker / File Ownership
+- [x] Fix container changing ownership of `/data` mount to unknown uid (166535/166536)
+  Root cause: rootless Docker maps container `uid 0` → host user; old entrypoint did
+  `chown -R user:user /data` (uid 1000 → host uid 166535). Fix: detect rootless mode via
+  `/proc/self/uid_map` (NR==1 col2 ≠ 0), stay as root in rootless mode (= host user on disk),
+  only chown `output/` and `vcf/annotation/` in standard Docker after remapping to HOST_UID/HOST_GID.
 
 ---
 
 ## Bugs
-
-### HTML Report: ACMG / ClinVar / Predictions columns off by 2
-**Priority: High** — ACMG criteria chips and computational predictions panels show wrong data.
-
-Combine.xlsx has 150 columns. The hardcoded indices in `excel_to_html_report.py` are 2 positions too high:
-
-| Item | Script | Actual (Combine.xlsx) |
-|------|--------|----------------------|
-| `population_freq` group end | col 88 (includes PVS1!) | col 86 (nci60) |
-| `acmg_criteria` group start | col 89 (PS1) | col 87 (InterVar_automated) |
-| `acmg_criteria` group end | col 122 (REVEL) | col 120 (CLNSIG) |
-| ACMG_GROUPS PVS1 | col 90 | col 88 |
-| ACMG_GROUPS PS1–PS4 | cols 91–94 | cols 89–92 |
-| CLINVAR_COLS | [118–122] | [116–120] |
-| PREDICTION_SCORES M-CAP | col 123 | col 121 |
-| PREDICTION_SCORES REVEL | col 124 | col 122 |
-| PREDICTION_SCORES SIFT | col 125/126 | col 123/124 |
-
-Fix: subtract 2 from all `ACMG_GROUPS`, `CLINVAR_COLS`, and `PREDICTION_SCORES` indices,
-and update `COLUMN_GROUPS["population_freq"]`, `["acmg_criteria"]`, and `["computational"]`.
-
-Long-term fix: replace hardcoded column indices with header-name lookup so the report
-is resilient to future column additions.
 
 ### HTML Report: Summary.html missing samples with 0 variants
 **Priority: Medium** — Samples with no filtered variants produce no `samples/*.html` page
@@ -77,7 +64,6 @@ generation for per-sample mode (Summary.html serves as the top-level landing pag
 ## Improvements
 
 ### HTML Report
-- [ ] Switch ACMG/ClinVar/predictions from hardcoded column indices to header-name lookup
 - [ ] Show 0-variant samples in Summary.html with a "No variants" badge
 - [ ] Display CancerVar tier prominently on variant detail pages (highlighted badge)
 - [ ] Add VAF frequency bar visualisation on sample variant table
