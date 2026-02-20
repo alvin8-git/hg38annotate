@@ -110,8 +110,9 @@ process_iseq() {
     fi
 
     # Move all files to annotation directory
-    if [ ! -d ./annotation ]; then
-        log_info "Creating annotation directory..."
+    # Check for actual content, not just directory existence (entrypoint pre-creates the dir)
+    if [ ! -f ./annotation/Combine.xlsx ]; then
+        log_info "Moving annotation files to annotation directory..."
         mkdir -p ./annotation
         mv *.txt *.xlsx ./annotation/ 2>/dev/null || true
         mv transvar/ ./annotation/ 2>/dev/null || true

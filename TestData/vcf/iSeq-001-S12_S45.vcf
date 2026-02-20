@@ -2,7 +2,7 @@
 ##FILTER=<ID=PASS,Description="All filters passed">
 ##fileDate=20230118
 ##source=Pisces 5.3.0.0
-##Pisces_cmdline=""-bam /mnt/hgfs/SharedUbuntu/iSeq/Run1/output-hg38/bam/iSeq-001-S04_S84.bam -g /home/alvin/Databases/hg38/ --minvf 0.01 --ssfilter FALSE --minbq 20 --maxvq 100 -c 10 --sbfilter 0.5 --minvq 20 --gvcf false --callmnvs true -i /mnt/hgfs/SharedUbuntu/iSeq/Test-iSeq/bed/AmpManifest-hg38.bed -t 9 --outfolder .""
+##Pisces_cmdline=""-bam /mnt/hgfs/SharedUbuntu/iSeq/Run1/output-hg38/bam/iSeq-001-S12_S45.bam -g /home/alvin/Databases/hg38/ --minvf 0.01 --ssfilter FALSE --minbq 20 --maxvq 100 -c 10 --sbfilter 0.5 --minvq 20 --gvcf false --callmnvs true -i /mnt/hgfs/SharedUbuntu/iSeq/Test-iSeq/bed/AmpManifest-hg38.bed -t 9 --outfolder .""
 ##reference=/home/alvin/Databases/hg38/
 ##ALT=<ID=<M>,Description="There is an overlapping other allele that has been called in a separate VCF record">
 ##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
@@ -28,8 +28,12 @@
 ##contig=<ID=chrM,length=16569>
 ##contig=<ID=chrX,length=156040895>
 ##bcftools_viewVersion=1.10.2+htslib-1.11
-##bcftools_viewCommand=view -i (%FILTER='PASS'||%FILTER='SB') -o iSeq-001-S04_S84.x.vcf iSeq-001-S04_S84.vcf; Date=Wed Jan 18 11:19:36 2023
-#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	iSeq-001-S04_S84.bam
-chr9	5069837	.	G	A	100	PASS	DP=723	GT:GQ:AD:DP:VF:NL:SB	0/1:100:363,360:723:0.498:20:-100
-chr9	5070355	.	G	A	23	q30;SB	DP=157	GT:GQ:AD:DP:VF:NL:SB	0/1:23:151,6:157:0.038:20:-1.6794
-chr9	5072182	.	C	T	100	PASS	DP=8476	GT:GQ:AD:DP:VF:NL:SB	0/1:100:4302,4174:8476:0.492:20:-100
+##bcftools_viewCommand=view -i (%FILTER='PASS'||%FILTER='SB') -o iSeq-001-S12_S45.x.vcf iSeq-001-S12_S45.vcf; Date=Wed Jan 18 11:19:36 2023
+##bcftools_viewVersion=1.13+htslib-1.13+ds
+##bcftools_viewCommand=view -i (%FILTER='PASS'||%FILTER='SB') -o iSeq-001-S12_S45.x.vcf iSeq-001-S12_S45.vcf; Date=Fri Feb 20 09:02:47 2026
+##bcftools_viewCommand=view -i (%FILTER='PASS'||%FILTER='SB') -o iSeq-001-S12_S45.x.vcf iSeq-001-S12_S45.vcf; Date=Fri Feb 20 09:05:33 2026
+##bcftools_viewCommand=view -i (%FILTER='PASS'||%FILTER='SB') -o iSeq-001-S12_S45.x.vcf iSeq-001-S12_S45.vcf; Date=Fri Feb 20 09:07:21 2026
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	iSeq-001-S12_S45.bam
+chr1	43349125	.	T	C	42	PASS	DP=1341	GT:GQ:AD:DP:VF:NL:SB	0/1:42:1310,30:1341:0.022:20:-19.5212
+chr1	43349338	.	G	T	100	PASS	DP=27209	GT:GQ:AD:DP:VF:NL:SB	0/1:100:15997,11158:27209:0.41:20:-100
+chr1	43349419	.	A	G	100	PASS	DP=6576	GT:GQ:AD:DP:VF:NL:SB	0/1:100:6434,132:6576:0.02:20:-35.3571

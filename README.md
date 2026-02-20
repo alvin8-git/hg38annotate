@@ -13,7 +13,7 @@ A Docker-based VCF annotation pipeline for the HG38/GRCh38 reference genome. Tak
 
 ## Prerequisites
 
-- Docker ≥ 20.10
+- Docker ≥ 20.10 (rootless or standard)
 - The annotation tools below (bundled in `Software.tar.gz` from the GitHub release)
 - annovar-fast + humandb-tbi (tabix-indexed databases, mounted at runtime)
 - HG38/GRCh38 reference databases (VEP cache, snpEff db, reference FASTA)
@@ -61,6 +61,8 @@ Image size: ~2 GB (excluding mounted databases).
 
 ```bash
 docker run --rm -it \
+    -e HOST_UID=$(id -u) \
+    -e HOST_GID=$(id -g) \
     -v /path/to/Databases:/home/user/Databases:ro \
     -v /path/to/annovar-fast:/path/to/annovar-fast:ro \
     -v /path/to/humandb-tbi:/path/to/humandb-tbi:ro \
@@ -72,6 +74,8 @@ docker run --rm -it \
 
 ```bash
 docker run --rm \
+    -e HOST_UID=$(id -u) \
+    -e HOST_GID=$(id -g) \
     -v /path/to/Databases:/home/user/Databases:ro \
     -v /path/to/annovar-fast:/path/to/annovar-fast:ro \
     -v /path/to/humandb-tbi:/path/to/humandb-tbi:ro \
@@ -85,6 +89,8 @@ The included `run_docker.sh` shows a working example for a local setup:
 
 ```bash
 docker run --rm -it \
+    -e HOST_UID=$(id -u) \
+    -e HOST_GID=$(id -g) \
     -v /data/alvin/Databases:/home/user/Databases:ro \
     -v /data/alvin/hg38annotate/TestData:/data \
     -v /data/alvin/annovar/annovar-fast:/data/alvin/annovar/annovar-fast:ro \
@@ -113,14 +119,25 @@ docker run --rm -it \
 | `Databases/SG10K.hg38.vcf/` | SG10K Singapore population (HG38) |
 | `Databases/genomeAsia/` | GenomeAsia 100K database |
 
+### File Ownership (Rootless Docker)
+
+The entrypoint automatically detects whether Docker is running in **rootless mode** by reading `/proc/self/uid_map`:
+
+- **Rootless Docker** — container `uid 0` maps to the host user. The pipeline runs as root inside the container, which is equivalent to running as the host user on disk. All output files are owned by the host user. No `-e HOST_UID` required (but harmless if passed).
+- **Standard Docker** — the entrypoint remaps the internal `user` account to `HOST_UID`/`HOST_GID` (passed via `-e`), then drops privileges via `gosu`. Always pass `-e HOST_UID=$(id -u) -e HOST_GID=$(id -g)` in this mode to ensure correct file ownership.
+
+The entrypoint **never** does a recursive `chown` on the entire `/data` mount — only the `output/` and `vcf/annotation/` subdirectories are created/owned if they don't exist.
+
 ## Testing
 
-TestData with 4 iSeq panel VCF samples is included in `TestData/vcf/`.
+TestData with 5 iSeq panel VCF samples (VCF + BAM) is included in `TestData/`.
 
 ### Run the full pipeline on TestData
 
 ```bash
 docker run --rm -it \
+    -e HOST_UID=$(id -u) \
+    -e HOST_GID=$(id -g) \
     -v /path/to/Databases:/home/user/Databases:ro \
     -v /path/to/annovar-fast:/path/to/annovar-fast:ro \
     -v /path/to/humandb-tbi:/path/to/humandb-tbi:ro \
@@ -129,9 +146,9 @@ docker run --rm -it \
 ```
 
 Expected results:
-- **Annotation stage**: ~33 seconds, produces `TestData/output/*.xlsx` (5 files including `Combine.xlsx`)
-- **IGV stage**: 1 PNG snapshot (`iSeq-001-S02_S82-9-5070033.png`) — the only sample with a filtered variant
-- **HTML stage**: `TestData/output/html_reports/Summary.html` + 4 sample pages
+- **Annotation stage**: ~35 seconds, produces `TestData/output/*.xlsx` (6 files: 5 per-sample + `Combine.xlsx`), 27 variants total
+- **IGV stage**: 10 PNG snapshots across all 5 samples (S02×1, S12×1, S26×3, S32×1, S51×4)
+- **HTML stage**: `TestData/output/html_reports/Summary.html` + 5 sample pages with ACMG chips, ClinVar, and prediction scores
 
 ### Run individual stages
 
@@ -192,18 +209,22 @@ Input: VCF files in vcf/
 
 ```
 output/
-├── iSeq-001-S01_S81.xlsx       # Per-sample annotation (Filter, Annotation, Check sheets)
-├── iSeq-001-S02_S82.xlsx
+├── iSeq-001-S02_S82.xlsx       # Per-sample annotation (Filter, Annotation, Check sheets)
+├── iSeq-001-S12_S45.xlsx
+├── iSeq-001-S26_S59.xlsx
+├── iSeq-001-S32_S2.xlsx
+├── iSeq-001-S51_S62.xlsx
 ├── Combine.xlsx                 # All samples combined
 ├── SnapShots/
-│   └── iSeq-001-S02_S82-9-5070033.png   # sample-chr-pos.png
+│   ├── iSeq-001-S02_S82-9-5070033.png   # sample-chr-pos.png
+│   └── ...                              # one PNG per filtered variant per sample
 └── html_reports/
     ├── Summary.html             # Landing page linking to all samples
     ├── index.html               # Last-generated sample index
     └── samples/
         ├── iSeq-001-S02_S82.html        # Variant table for this sample
         └── variants/
-            └── iSeq-001-S02_S82_var0.html  # Per-variant detail page
+            └── iSeq-001-S02_S82_var0.html  # Per-variant detail page with IGV screenshot
 ```
 
 ## Tools and Versions
@@ -225,6 +246,8 @@ Override default tool paths at runtime:
 
 ```bash
 docker run --rm \
+    -e HOST_UID=$(id -u) \
+    -e HOST_GID=$(id -g) \
     -e ANNOVAR_FAST=/custom/path/annovar-fast.py \
     -e CANCERVAR_FAST=/custom/path/cancervar-fast.py \
     -e VEP_CACHE=/home/user/Databases/vep \
@@ -235,6 +258,8 @@ docker run --rm \
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `HOST_UID` | — | Host user UID for correct file ownership (standard Docker only) |
+| `HOST_GID` | — | Host user GID for correct file ownership (standard Docker only) |
 | `ANNOVAR_FAST` | `/data/alvin/annovar/annovar-fast/annovar-fast.py` | Path to annovar-fast.py |
 | `CANCERVAR_FAST` | `/data/alvin/annovar/annovar-fast/cancervar-fast.py` | Path to cancervar-fast.py |
 | `VEP_CACHE` | `$HOME/Databases/vep` | VEP cache directory |
@@ -249,7 +274,8 @@ docker run --rm \
 | `processVCF-hg38.sh` | Main pipeline orchestrator — runs all 3 stages with status tracking |
 | `mergeVCFannotation-optimized-hg38.sh` | Parallel annotation engine (annovar-fast, VEP, snpEff, TransVar, cancervar-fast) |
 | `make_IGV_snapshots.py` | Headless IGV automation via xvfb |
-| `excel_to_html_report.py` | Converts per-sample xlsx to interactive HTML variant reports |
+| `excel_to_html_report.py` | Converts per-sample xlsx to interactive HTML variant reports; column positions resolved by header name, not hardcoded index |
+| `entrypoint.sh` | Docker entrypoint — detects rootless vs standard Docker and sets file ownership accordingly |
 | `check_docker_deps.sh` | Verifies all tools and databases are available inside the container |
 
 ## License
