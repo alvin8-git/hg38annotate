@@ -38,6 +38,15 @@
   `/proc/self/uid_map` (NR==1 col2 ≠ 0), stay as root in rootless mode (= host user on disk),
   only chown `output/` and `vcf/annotation/` in standard Docker after remapping to HOST_UID/HOST_GID.
 
+### Pipeline Stage Tracking
+- [x] Fix annotation stage: `process_iseq()` skipped moving output files to `./annotation/`
+  because the entrypoint pre-creates `/data/vcf/annotation` (empty directory). The guard
+  `if [ ! -d ./annotation ]` was always false, leaving xlsx/txt files in `/data/vcf/` instead
+  of `./annotation/`, so `check_annotation_complete()` found 0 xlsx files and IGV/HTML stages
+  reported "Annotation not complete". Fix: changed guard to `if [ ! -f ./annotation/Combine.xlsx ]`
+  to detect an empty pre-created directory vs a populated one. Validated with 5-sample TestData:
+  all 3 stages now complete (annotation → 10 IGV snapshots → 5 HTML pages + Summary.html).
+
 ---
 
 ## Bugs
