@@ -87,10 +87,16 @@ Fix: always write a `samples/{sample}.html` page even for 0-variant samples, sho
   linked to `ncbi.nlm.nih.gov/clinvar/variation/<id>/`
 
 ### Pipeline
-- [ ] Add gnomAD_genome column name normalisation in `mergeVCFannotation-optimized-hg38.sh`
-  (output uses `gnomad41_genome_AF`; ensure cancervar-fast config column names match)
-- [ ] Add `--dry-run` flag to `processVCF-hg38.sh` to preview what would run
-- [ ] Surface annotation warnings/errors more clearly in the run log
+- [x] Add gnomAD_genome column name normalisation in `mergeVCFannotation-optimized-hg38.sh`
+  — `verify_annovar_columns()` checks expected gnomAD column names (`gnomad41_genome_AF` etc.)
+  in the annovar output header and logs a warning if any are missing; added column-range
+  comments to `combine_annotations()` documenting each `cut -f` block
+- [x] Add `--dry-run` (`-n`) flag to `processVCF-hg38.sh` — previews which stages would run
+  (or be skipped/blocked) without executing any of them
+- [x] Surface annotation warnings/errors more clearly in the run log
+  — VEP and snpEff now redirect stderr to per-run log files instead of `/dev/null`;
+  after each tool completes the log is grepped for errors/exceptions and surfaced via
+  `log_warn`; log file is removed on success. Added `log_warn` to `processVCF-hg38.sh`.
 
 ### Docker
 - [ ] Publish image to Docker Hub or GitHub Container Registry (`ghcr.io`)

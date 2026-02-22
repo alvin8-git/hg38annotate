@@ -39,6 +39,10 @@ log_info() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] INFO: $1"
 }
 
+log_warn() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] WARN: $1" >&2
+}
+
 log_error() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: $1" >&2
 }
@@ -471,6 +475,7 @@ main() {
     local run_html=false
     local run_all=true
     local force=false
+    local dry_run=false
     local show_status_only=false
 
     # Parallel settings
@@ -508,6 +513,9 @@ main() {
                 ;;
             --force|-f)
                 force=true
+                ;;
+            --dry-run|-n)
+                dry_run=true
                 ;;
             --parallel|-j)
                 shift
@@ -589,6 +597,7 @@ main() {
                 echo "  --from-igv      Run from IGV stage onwards (IGV + HTML)"
                 echo "  --from-html     Run HTML stage only (same as --html)"
                 echo "  --force, -f     Force re-run even if stage is complete"
+                echo "  --dry-run, -n   Preview which stages would run without executing them"
                 echo "  --parallel N    Run N IGV instances in parallel (default: auto based on RAM)"
                 echo "  --serial        Run IGV snapshots sequentially (same as --parallel 1)"
                 echo "  --check         Check dependencies"
@@ -596,6 +605,7 @@ main() {
                 echo ""
                 echo "Examples:"
                 echo "  $0                  # Run full pipeline, skip completed stages"
+                echo "  $0 --dry-run        # Preview what would run"
                 echo "  $0 --status         # Check what stages are complete"
                 echo "  $0 --from-igv       # Re-run IGV and HTML (annotation already done)"
                 echo "  $0 --html --force   # Force regenerate HTML reports"
@@ -623,18 +633,27 @@ main() {
         run_html=true
     fi
 
+    # Dry-run banner
+    if [ "$dry_run" = true ]; then
+        log_info "DRY RUN — no stages will be executed"
+    fi
+
     # =========================================================================
     # STAGE 1: ANNOTATION
     # =========================================================================
     if [ "$run_annotation" = true ]; then
         if [ "$force" = true ] || ! check_annotation_complete; then
-            log_info ">>> STAGE 1: ANNOTATION"
+            if [ "$dry_run" = true ]; then
+                log_info ">>> STAGE 1: ANNOTATION [DRY RUN - would run mergeVCFannotation-optimized-hg38.sh]"
+            else
+                log_info ">>> STAGE 1: ANNOTATION"
 
-            # Process iSeq
-            process_iseq
+                # Process iSeq
+                process_iseq
 
-            # Create output directory and copy files
-            create_output
+                # Create output directory and copy files
+                create_output
+            fi
         else
             log_info ">>> STAGE 1: ANNOTATION [SKIPPED - already complete]"
             log_info "    Use --force to re-run annotation"
@@ -646,15 +665,20 @@ main() {
     # =========================================================================
     if [ "$run_igv" = true ]; then
         if ! check_annotation_complete; then
-            log_error "Cannot run IGV stage: Annotation not complete"
-            log_error "Run annotation first or use --annotate"
-            exit 1
-        fi
-
-        if [ "$force" = true ] || ! check_igv_complete; then
-            log_info ">>> STAGE 2: IGV SNAPSHOTS"
-
-            generate_igv_snapshots
+            if [ "$dry_run" = true ]; then
+                log_warn ">>> STAGE 2: IGV SNAPSHOTS [DRY RUN - annotation not yet complete; stage would be blocked]"
+            else
+                log_error "Cannot run IGV stage: Annotation not complete"
+                log_error "Run annotation first or use --annotate"
+                exit 1
+            fi
+        elif [ "$force" = true ] || ! check_igv_complete; then
+            if [ "$dry_run" = true ]; then
+                log_info ">>> STAGE 2: IGV SNAPSHOTS [DRY RUN - would run make_IGV_snapshots.py for each sample]"
+            else
+                log_info ">>> STAGE 2: IGV SNAPSHOTS"
+                generate_igv_snapshots
+            fi
         else
             log_info ">>> STAGE 2: IGV SNAPSHOTS [SKIPPED - already complete]"
             log_info "    Use --force to re-run IGV snapshots"
@@ -666,15 +690,20 @@ main() {
     # =========================================================================
     if [ "$run_html" = true ]; then
         if ! check_annotation_complete; then
-            log_error "Cannot run HTML stage: Annotation not complete"
-            log_error "Run annotation first or use --annotate"
-            exit 1
-        fi
-
-        if [ "$force" = true ] || ! check_html_complete; then
-            log_info ">>> STAGE 3: HTML REPORTS"
-
-            generate_html_reports
+            if [ "$dry_run" = true ]; then
+                log_warn ">>> STAGE 3: HTML REPORTS [DRY RUN - annotation not yet complete; stage would be blocked]"
+            else
+                log_error "Cannot run HTML stage: Annotation not complete"
+                log_error "Run annotation first or use --annotate"
+                exit 1
+            fi
+        elif [ "$force" = true ] || ! check_html_complete; then
+            if [ "$dry_run" = true ]; then
+                log_info ">>> STAGE 3: HTML REPORTS [DRY RUN - would run excel_to_html_report.py for each sample]"
+            else
+                log_info ">>> STAGE 3: HTML REPORTS"
+                generate_html_reports
+            fi
         else
             log_info ">>> STAGE 3: HTML REPORTS [SKIPPED - already complete]"
             log_info "    Use --force to re-run HTML reports"

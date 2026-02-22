@@ -163,6 +163,43 @@ run_annovar() {
     python3 "$ANNOVAR_FAST" "$vcf" -o "$sample.annovar.txt"
 
     log_success "ANNOVAR-fast completed for $sample"
+
+    verify_annovar_columns "$sample.annovar.txt"
+}
+
+# Verify that expected gnomAD genome column names are present in the annovar output header.
+# Logs a warning if a column is missing, which can indicate that annovar-fast or humandb
+# version changes have renamed the gnomAD columns (e.g. gnomad30 -> gnomad41).
+verify_annovar_columns() {
+    local annovar_file="$1"
+
+    [ -f "$annovar_file" ] || return 0
+
+    local header
+    header=$(head -1 "$annovar_file")
+
+    # Key gnomAD genome columns that combine_annotations() extracts by position.
+    # If any of these are absent the combined output will have wrong values in those columns.
+    local -a expected_cols=(
+        "gnomad41_genome_AF"
+        "gnomad41_genome_AF_afr"
+        "gnomad41_genome_AF_amr"
+        "gnomad41_genome_AF_eas"
+        "gnomad41_genome_AF_nfe"
+        "gnomad41_exome_AF"
+    )
+
+    local any_missing=false
+    for col in "${expected_cols[@]}"; do
+        if ! echo "$header" | grep -qF "$col"; then
+            log_warn "Expected column '$col' not found in annovar output — gnomAD column names may have changed"
+            any_missing=true
+        fi
+    done
+
+    if [ "$any_missing" = true ]; then
+        log_warn "Verify that combine_annotations() column offsets still match the annovar output header"
+    fi
 }
 
 run_vep() {
@@ -177,6 +214,8 @@ run_vep() {
     fi
 
     log_info "Starting VEP for $sample"
+
+    local vep_log="$sample.vep.log"
 
     vep -i "$vcf" \
         --dir_cache "$VEP_CACHE" \
@@ -193,11 +232,20 @@ run_vep() {
         --exclude_predicted \
         --no_escape \
         --use_given_ref \
-        -o "$sample.vep.output.txt" 2>/dev/null
+        -o "$sample.vep.output.txt" 2>"$vep_log"
 
     rm -f "${sample}.vep.output.txt_summary.html"
     grep -v "##" "$sample.vep.output.txt" > "$sample.vep.txt"
     rm -f "$sample.vep.output.txt"
+
+    # Surface any errors from the VEP log
+    if grep -qiE "^ERROR|^FATAL|failed|error" "$vep_log" 2>/dev/null; then
+        log_warn "VEP reported issues for $sample:"
+        grep -iE "^ERROR|^FATAL|failed|error" "$vep_log" | head -5 | while IFS= read -r line; do
+            log_warn "  $line"
+        done
+    fi
+    rm -f "$vep_log"
 
     log_success "VEP completed for $sample"
 }
@@ -213,11 +261,13 @@ run_snpeff() {
     local snpEff="$SNPEFF_DIR/snpEff.jar"
     local SnpSift="$SNPEFF_DIR/SnpSift.jar"
     local scriptsDir="$SNPEFF_DIR/scripts"
+    local snpeff_log="$sample.snpEff.log"
+    > "$snpeff_log"
 
     # Run snpEff for HG38
     java -Xmx2g -jar "$snpEff" GRCh38.p13.RefSeq \
         -canon -onlyProtein -strict -noShiftHgvs "$vcf" \
-        > "$sample.snpEff.ref.vcf" 2>/dev/null
+        > "$sample.snpEff.ref.vcf" 2>>"$snpeff_log"
 
     # Split into one effect per line
     cat "$sample.snpEff.ref.vcf" | "$scriptsDir/vcfEffOnePerLine.pl" \
@@ -228,14 +278,14 @@ run_snpeff() {
         java -jar "$SnpSift" filter -n \
         "(ANN[*].EFFECT has 'upstream_gene_variant') | \
          (ANN[*].EFFECT has 'downstream_gene_variant') | \
-         (ANN[*].EFFECT has 'intragenic_variant')" 2>/dev/null \
+         (ANN[*].EFFECT has 'intragenic_variant')" 2>>"$snpeff_log" \
         > "$sample.snpEff.filter.vcf"
 
     # Combine and sort
     cat "$sample.snpEff.filter.vcf" \
         <(awk 'FNR==NR{a[$1"_"$2"_"$4"_"$5]=$0;next}{if(!($1"_"$2"_"$4"_"$5 in a))print}' \
         <(grep -v "^#" "$sample.snpEff.filter.vcf") \
-        <(grep -v "^#" "$sample.snpEff.ref.vcf")) | vcf-sort -c 2>/dev/null \
+        <(grep -v "^#" "$sample.snpEff.ref.vcf")) | vcf-sort -c 2>>"$snpeff_log" \
         > "$sample.snpEff.vcf"
 
     # Extract fields
@@ -246,7 +296,7 @@ run_snpeff() {
         "ANN[*].ALLELE" "ANN[*].EFFECT" "ANN[*].IMPACT" "ANN[*].BIOTYPE" "ANN[*].RANK" \
         "ANN[*].CDNA_POS" "ANN[*].CDNA_LEN" "ANN[*].CDS_POS" "ANN[*].CDS_POS" \
         "ANN[*].AA_POS" "ANN[*].AA_LEN" \
-        "LOF[*].GENE" "LOF[*].NUMTR" "LOF[*].PERC" 2>/dev/null \
+        "LOF[*].GENE" "LOF[*].NUMTR" "LOF[*].PERC" 2>>"$snpeff_log" \
         | sed 's/ANN\[\*\]\.//g' \
         > "$sample.presnpEff.txt"
 
@@ -259,6 +309,15 @@ run_snpeff() {
 
     rm -f "$sample.snpEff.ref.vcf" "$sample.snpEff.1Eff.vcf" \
           "$sample.snpEff.filter.vcf" "$sample.snpEff.vcf" "$sample.presnpEff.txt"
+
+    # Surface any errors from the snpEff log (exclude routine INFO/WARNING lines)
+    if grep -qiE "^ERROR|Exception|OutOfMemory" "$snpeff_log" 2>/dev/null; then
+        log_warn "snpEff reported issues for $sample:"
+        grep -iE "^ERROR|Exception|OutOfMemory" "$snpeff_log" | head -5 | while IFS= read -r line; do
+            log_warn "  $line"
+        done
+    fi
+    rm -f "$snpeff_log"
 
     log_success "snpEff completed for $sample"
 }
@@ -535,7 +594,7 @@ run_annotations_parallel() {
 
     log_step "RUNNING ANNOTATIONS IN PARALLEL"
 
-    export -f run_annovar run_vep run_snpeff run_transvar log_info log_success log_warn
+    export -f run_annovar run_vep run_snpeff run_transvar verify_annovar_columns log_info log_success log_warn
     export ANNOVAR_FAST CANCERVAR_FAST SNPEFF_DIR VEP_CACHE HG38_FASTA REFSEQ_TRANSCRIPTS
 
     log_info "Starting parallel annotation (ANNOVAR, VEP, snpEff, TransVar)..."
@@ -614,6 +673,20 @@ combine_annotations() {
     log_step "COMBINING ANNOTATIONS"
 
     # Combine annotations for HG38 (adjusted column numbers for hg38 annovar output)
+    # Column layout of annovar output (verify_annovar_columns checks key gnomAD names):
+    #   f18-32  : esp6500siv2_all, ExAC_*, 1000g2015aug_*
+    #   f33-61  : InterVar_automated, ACMG criteria (PVS1..BP7)
+    #   f62-64  : Kaviar_AF/AC/AN
+    #   f65-66  : MCAP, REVEL
+    #   f67     : gnomad41_exome_AF  (+ selected sub-pop exome AFs below)
+    #   f84     : gnomad41_genome_AF (+ selected sub-pop genome AFs below)
+    #   f88,90-95: gnomad41_genome_AF_afr/amr/asj/eas/fin/nfe/remaining
+    #   f97     : snp141 (dbSNP rsID)
+    #   f98-122 : SIFT, PolyPhen2, LRT, MutationTaster, CADD, etc.
+    #   f123-127: additional pathogenicity scores
+    #   f131-144: HRC_*, GME_*
+    #   f153-154: cg69, nci60
+    #   f157-159: phastConsElements100way, targetScanS, Otherinfo (unused)
     if [ -f "$sample.annovar.txt" ] && [ -f "$sample.snpEff.txt" ] && [ -f "$sample.transvar.txt" ]; then
         paste \
             <(grep -v "^#" "$sample.vcf" | cut -f1-2,4-5 | sed 's/:\S*//g' | sed '1i Chr\tPos\tRef\tAlt') \
