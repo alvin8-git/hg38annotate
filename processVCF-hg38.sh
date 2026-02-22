@@ -285,7 +285,12 @@ generate_igv_snapshots() {
 
     if [ -d annotation ]; then
         for f in annotation/*.Filter.txt; do
-            [ -f "$f" ] && filter_files+=("$f:$bam_dir")
+            [ -f "$f" ] || continue
+            local base
+            base=$(basename "$f" .Filter.txt)
+            # Combine.Filter.txt is the merged VCF — no individual BAM exists for it
+            [[ "$base" == "Combine" || "$base" == "Merge" ]] && continue
+            filter_files+=("$f:$bam_dir")
         done
     fi
 
