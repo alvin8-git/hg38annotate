@@ -423,11 +423,9 @@ check_igv_complete() {
 
 check_html_complete() {
     local output_dir="../output"
-    if [ -d "$output_dir/html_reports" ]; then
-        local html_count=$(ls "$output_dir/html_reports"/*.html 2>/dev/null | wc -l)
-        if [ "$html_count" -gt 1 ]; then
-            return 0
-        fi
+    # Summary.html is the single root-level landing page (index.html no longer generated)
+    if [ -f "$output_dir/html_reports/Summary.html" ]; then
+        return 0
     fi
     return 1
 }
@@ -452,8 +450,8 @@ show_status() {
     fi
 
     if check_html_complete; then
-        local html_count=$(ls ../output/html_reports/*.html 2>/dev/null | wc -l)
-        echo "  [OK] HTML reports complete ($html_count files)"
+        local sample_count=$(ls ../output/html_reports/samples/*.html 2>/dev/null | wc -l)
+        echo "  [OK] HTML reports complete ($sample_count sample pages + Summary.html)"
     else
         echo "  [ ] HTML reports not complete"
     fi

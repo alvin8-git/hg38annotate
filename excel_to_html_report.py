@@ -712,69 +712,6 @@ class iSeqReportGenerator:
 
     # ---- Page generators ----
 
-    def generate_landing_page(self) -> str:
-        html = f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iSeq Variant Report</title>
-    <style>{get_css_styles()}</style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>iSeq Variant Analysis Report</h1>
-            <div class="subtitle">Generated from {escape(self.excel_path.name)}</div>
-        </div>
-
-        <div class="dashboard-stats">
-            <div class="stat-card">
-                <div class="stat-value">{len(self.samples)}</div>
-                <div class="stat-label">Total Samples</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">{len(self.rows)}</div>
-                <div class="stat-label">Total Variants</div>
-            </div>
-        </div>
-
-        <div class="sample-grid">'''
-
-        for sample_name in sorted(self.samples.keys()):
-            row_indices = self.samples[sample_name]
-            genes = set()
-            for idx in row_indices:
-                g = self._val_n(idx, KEY_COL_NAMES["gene"])
-                if g:
-                    genes.add(g)
-
-            safe_sample = re.sub(r'[^\w\-_]', '_', sample_name)
-
-            html += f'''
-            <a href="samples/{safe_sample}.html" class="sample-card">
-                <div class="sample-card-header">
-                    <h3>{escape(sample_name)}</h3>
-                </div>
-                <div class="sample-card-body">
-                    <div class="sample-stat">
-                        <span class="sample-stat-label">Variants</span>
-                        <span class="sample-stat-value">{len(row_indices)}</span>
-                    </div>
-                    <div class="sample-stat">
-                        <span class="sample-stat-label">Genes Affected</span>
-                        <span class="sample-stat-value">{len(genes)}</span>
-                    </div>
-                </div>
-            </a>'''
-
-        html += '''
-        </div>
-    </div>
-</body>
-</html>'''
-        return html
-
     def generate_sample_page(self, sample_name: str) -> str:
         row_indices = self.samples[sample_name]
         safe_sample = re.sub(r'[^\w\-_]', '_', sample_name)
@@ -795,7 +732,7 @@ class iSeqReportGenerator:
         </div>
 
         <div class="breadcrumb">
-            <a href="../index.html">&#8592; All Samples</a> &gt; {escape(sample_name)}
+            <a href="../Summary.html">&#8592; All Samples</a> &gt; {escape(sample_name)}
         </div>
 
         <div class="dashboard-stats">
@@ -903,7 +840,7 @@ class iSeqReportGenerator:
         </div>
 
         <div class="breadcrumb">
-            <a href="../../index.html">All Samples</a> &gt;
+            <a href="../../Summary.html">All Samples</a> &gt;
             <a href="../{safe_sample}.html">{escape(sample_name)}</a> &gt;
             {escape(gene)} {escape(chrom)}:{escape(pos)}
         </div>
@@ -984,9 +921,6 @@ class iSeqReportGenerator:
         variants_dir = samples_dir / "variants"
         variants_dir.mkdir(exist_ok=True)
 
-        print("Generating landing page...")
-        (self.output_dir / "index.html").write_text(self.generate_landing_page())
-
         for sample_name in sorted(self.samples.keys()):
             safe_sample = re.sub(r'[^\w\-_]', '_', sample_name)
             print(f"Generating pages for sample: {sample_name}")
@@ -997,7 +931,6 @@ class iSeqReportGenerator:
                     self.generate_variant_page(sample_name, row_idx))
 
         print(f"\nHTML reports generated in: {self.output_dir}")
-        print(f"  - Landing page: {self.output_dir / 'index.html'}")
         print(f"  - Sample pages: {samples_dir}")
         print(f"  - Variant pages: {variants_dir}")
 
@@ -1017,9 +950,13 @@ def generate_summary_page(html_dir: str):
     except Exception:
         pass
 
+    variants_dir = samples_dir / "variants"
     cards_html = ""
+    total_variants = 0
     for sf in sample_files:
         sample_name = sf.stem
+        n_variants = len(list(variants_dir.glob(f"{sample_name}_var*.html"))) if variants_dir.exists() else 0
+        total_variants += n_variants
         cards_html += f'''
             <a href="samples/{escape(sf.name)}" class="sample-card">
                 <div class="sample-card-header">
@@ -1027,8 +964,8 @@ def generate_summary_page(html_dir: str):
                 </div>
                 <div class="sample-card-body">
                     <div class="sample-stat">
-                        <span class="sample-stat-label">Report</span>
-                        <span class="sample-stat-value">View</span>
+                        <span class="sample-stat-label">Variants</span>
+                        <span class="sample-stat-value">{n_variants}</span>
                     </div>
                 </div>
             </a>'''
@@ -1051,6 +988,10 @@ def generate_summary_page(html_dir: str):
             <div class="stat-card">
                 <div class="stat-value">{len(sample_files)}</div>
                 <div class="stat-label">Samples</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{total_variants}</div>
+                <div class="stat-label">Total Variants</div>
             </div>
         </div>
         <div class="sample-grid">
