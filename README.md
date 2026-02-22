@@ -146,9 +146,9 @@ docker run --rm -it \
 ```
 
 Expected results (total pipeline ~2 minutes):
-- **Annotation stage**: ~33 seconds, produces `TestData/output/*.xlsx` (6 files: 5 per-sample + `Combine.xlsx`), 27 variants across 5 samples
-- **IGV stage**: 10 PNG snapshots — one per filtered variant per sample (S02×1, S12×1, S26×3, S32×1, S51×4)
-- **HTML stage**: `TestData/output/html_reports/Summary.html` + 5 sample pages + 10 per-variant detail pages with embedded IGV screenshots, ACMG chips, ClinVar, and prediction scores
+- **Annotation stage**: ~33 seconds, produces `TestData/output/*.xlsx` (6 files: 5 per-sample + `Combine.xlsx`), 27 variants across 5 samples; SG10K (AF_All, AF_CHS, AF_INS, AF_MAS) and GenomeAsia (AF_SEA, AF_NEA, AF_SAS) allele frequencies populated for matching SNPs
+- **IGV stage**: ~80 seconds, 10 PNG snapshots — one per filtered variant per sample (S02×1, S12×1, S26×3, S32×1, S51×4); each IGV instance has a 5-minute timeout so a slow/stuck instance does not block the pipeline
+- **HTML stage**: ~1 second, `TestData/output/html_reports/Summary.html` + 5 sample pages + 10 per-variant detail pages with embedded IGV screenshots, ACMG chips, ClinVar, prediction scores, and SG10K/GenomeAsia population frequencies with source-prefixed labels (e.g. `SG10K_AF_CHS`, `GenomeAsia_AF_SEA`)
 
 ### Run individual stages
 
