@@ -75,11 +75,16 @@ Fix: always write a `samples/{sample}.html` page even for 0-variant samples, sho
 ## Improvements
 
 ### HTML Report
-- [ ] Show 0-variant samples in Summary.html with a "No variants" badge
-- [ ] Display CancerVar tier prominently on variant detail pages (highlighted badge)
-- [ ] Add VAF frequency bar visualisation on sample variant table
-- [ ] Link cosmic91 IDs to COSMIC database URLs
-- [ ] Link ClinVar IDs to ClinVar web URLs
+- [x] Show 0-variant samples in Summary.html with a "No variants" badge — grey card header,
+  pill badge in header, variant count in muted colour; uses `.no-variants` CSS class
+- [x] Display CancerVar tier prominently on variant detail pages — `_cancervar_tier_badge()`
+  parses Tier I/II/III/IV and renders a coloured badge in the gene-hero section
+- [x] Add VAF frequency bar on sample variant table — 4 px mini-bar below the VAF % text,
+  width proportional to VAF; new `.vaf-bar-mini` CSS classes
+- [x] Link cosmic91 IDs to COSMIC database URLs — `_format_data_value()` in `_data_grid_html()`
+  hyperlinks COSM\d+ IDs to `cancer.sanger.ac.uk/cosmic/mutation/overview?id=<N>`
+- [x] Link ClinVar IDs to ClinVar web URLs — CLNALLELEID values in `_acmg_section_html()`
+  linked to `ncbi.nlm.nih.gov/clinvar/variation/<id>/`
 
 ### Pipeline
 - [ ] Add gnomAD_genome column name normalisation in `mergeVCFannotation-optimized-hg38.sh`
