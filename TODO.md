@@ -46,6 +46,18 @@
   reported "Annotation not complete". Fix: changed guard to `if [ ! -f ./annotation/Combine.xlsx ]`
   to detect an empty pre-created directory vs a populated one. Validated with 5-sample TestData:
   all 3 stages now complete (annotation → 10 IGV snapshots → 5 HTML pages + Summary.html).
+- [x] Fix `check_html_complete()` in `processVCF-hg38.sh`: was checking for `> 1` root-level
+  HTML files (relied on both `index.html` + `Summary.html`). Now checks for `Summary.html`
+  existence directly, since that is the sole root-level landing page.
+
+### HTML Report Landing Page
+- [x] Remove `index.html` generation — `generate_landing_page()` and its `index.html` write
+  removed from `generate_reports()`; `Summary.html` is now the only landing page. Fixes the
+  bug where each per-sample xlsx call overwrote `html_reports/index.html`.
+- [x] Fix breadcrumb "All Samples" link in sample pages: `../index.html` → `../Summary.html`
+- [x] Fix breadcrumb "All Samples" link in variant pages: `../../index.html` → `../../Summary.html`
+- [x] Add per-sample variant count to Summary.html cards — counted from `variants/{sample}_var*.html`
+  files; also added Total Variants stat to the Summary.html dashboard.
 
 ---
 
@@ -55,18 +67,8 @@
 **Priority: Medium** — Samples with no filtered variants produce no `samples/*.html` page
 (since `self.samples` is empty), so they are absent from Summary.html.
 
-Example: iSeq-001-S01_S81, S03, S04 have 0 variants after filtering → only iSeq-001-S02_S82
-appears in Summary.html.
-
 Fix: always write a `samples/{sample}.html` page even for 0-variant samples, showing a
 "No filtered variants" message.
-
-### HTML Report: `index.html` overwritten on each sample
-**Priority: Low** — Each call to `python3 excel_to_html_report.py <sample.xlsx> html_reports`
-overwrites `html_reports/index.html`. After 4 samples the file only reflects the last sample.
-
-Fix: either rename per-run index to `{sample_name}_index.html`, or remove the `index.html`
-generation for per-sample mode (Summary.html serves as the top-level landing page).
 
 ---
 
