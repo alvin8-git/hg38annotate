@@ -2,6 +2,29 @@
 
 ## Unreleased (main)
 
+### 2026-02 — IGV timeout and HTML population frequency improvements
+
+**`processVCF-hg38.sh`**
+
+- Added `timeout 300` (5 minutes) around each IGV call in `process_single_igv_sample()`.
+  When multiple IGV instances run in parallel, one can get stuck waiting on a network
+  fetch; the timeout ensures that sample is skipped (exit code 124 logged as "[IGV] Timed
+  out after 5 minutes for \<sample\> (skipping)") rather than blocking GNU parallel and
+  preventing the HTML stage from running.
+
+**`excel_to_html_report.py`**
+
+- Added `AF_SEA`, `AF_NEA`, `AF_SAS` (GenomeAsia) to `COLUMN_GROUP_NAMES["population_freq"]`;
+  these were absent so GenomeAsia frequencies never appeared in variant detail pages even
+  when values were present in the xlsx.
+- Added `POPULATION_FREQ_LABELS` dict mapping raw column names to source-prefixed display
+  labels: `SG10K_AF_All`, `SG10K_AF_CHS`, `SG10K_AF_INS`, `SG10K_AF_MAS`,
+  `GenomeAsia_AF_SEA`, `GenomeAsia_AF_NEA`, `GenomeAsia_AF_SAS`.
+- `_pop_freq_html()` now resolves the display label via
+  `POPULATION_FREQ_LABELS.get(col_name, col_name)` so the source database is unambiguous.
+
+---
+
 ### 2026-02 — SG10K and genomeAsia tabix lookup fix
 
 **`mergeVCFannotation-optimized-hg38.sh`**

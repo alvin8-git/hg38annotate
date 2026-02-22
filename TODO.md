@@ -53,6 +53,11 @@
   per-sample IGV loop, producing a spurious "No BAM file found for Combine, skipping..."
   warning on every run. Filter-file loop in `generate_igv_snapshots()` now explicitly skips
   filenames `Combine` and `Merge`.
+- [x] Add 5-minute timeout per IGV sample in `process_single_igv_sample()` — `timeout 300`
+  wrapper prevents a stuck IGV instance (e.g. waiting on a network fetch when multiple
+  parallel instances race for resources) from blocking GNU parallel and delaying the HTML
+  stage indefinitely. Exit code 124 is caught and logged as
+  "[IGV] Timed out after 5 minutes for \<sample\> (skipping)".
 
 ### Annotation Combiner Robustness
 - [x] Replace hardcoded `cut -f<N>` column positions in `combine_annotations()` with
@@ -111,6 +116,16 @@ Fix: always write a `samples/{sample}.html` page even for 0-variant samples, sho
   hyperlinks COSM\d+ IDs to `cancer.sanger.ac.uk/cosmic/mutation/overview?id=<N>`
 - [x] Link ClinVar IDs to ClinVar web URLs — CLNALLELEID values in `_acmg_section_html()`
   linked to `ncbi.nlm.nih.gov/clinvar/variation/<id>/`
+
+### HTML Report
+- [x] Add GenomeAsia `AF_SEA`, `AF_NEA`, `AF_SAS` to Population Freq Database section —
+  columns were missing from `COLUMN_GROUP_NAMES["population_freq"]` so GenomeAsia
+  frequencies never appeared in variant detail pages even when values were present in xlsx.
+- [x] Prefix SG10K and GenomeAsia column display labels — added `POPULATION_FREQ_LABELS`
+  dict mapping raw column names to source-prefixed labels (`SG10K_AF_All`, `SG10K_AF_CHS`,
+  `SG10K_AF_INS`, `SG10K_AF_MAS`, `GenomeAsia_AF_SEA`, `GenomeAsia_AF_NEA`,
+  `GenomeAsia_AF_SAS`); `_pop_freq_html()` now resolves labels via
+  `POPULATION_FREQ_LABELS.get(col_name, col_name)`.
 
 ### Pipeline
 - [x] Add gnomAD_genome column name normalisation in `mergeVCFannotation-optimized-hg38.sh`
