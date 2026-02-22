@@ -56,6 +56,7 @@ COLUMN_GROUP_NAMES = {
     ],
     "population_freq": [
         "AF_All", "AF_CHS", "AF_INS", "AF_MAS",
+        "AF_SEA", "AF_NEA", "AF_SAS",
         "esp6500siv2_all",
         "ExAC_ALL", "ExAC_AFR", "ExAC_AMR", "ExAC_EAS", "ExAC_FIN", "ExAC_NFE", "ExAC_OTH", "ExAC_SAS",
         "1000g2015aug_all", "1000g2015aug_afr", "1000g2015aug_eas",
@@ -71,6 +72,18 @@ COLUMN_GROUP_NAMES = {
         "GME_AF", "GME_NWA", "GME_NEA", "GME_AP", "GME_Israel", "GME_SD", "GME_TP", "GME_CA",
         "cg69", "nci60",
     ],
+}
+
+# Display-label overrides for population frequency columns.
+# Raw column names like AF_All are ambiguous — these prefixes clarify the source database.
+POPULATION_FREQ_LABELS: dict = {
+    "AF_All": "SG10K_AF_All",
+    "AF_CHS": "SG10K_AF_CHS",
+    "AF_INS": "SG10K_AF_INS",
+    "AF_MAS": "SG10K_AF_MAS",
+    "AF_SEA": "GenomeAsia_AF_SEA",
+    "AF_NEA": "GenomeAsia_AF_NEA",
+    "AF_SAS": "GenomeAsia_AF_SAS",
 }
 
 # ACMG criteria chip definitions: (header_name, label, css_class)
@@ -771,7 +784,8 @@ class iSeqReportGenerator:
             value = self._val(row_idx, col_idx)
             if not value:
                 continue
-            label = escape(self._header(col_idx))
+            col_name = self._header(col_idx)
+            label = escape(POPULATION_FREQ_LABELS.get(col_name, col_name))
 
             # Try to add frequency bar
             bar_html = ""
