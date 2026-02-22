@@ -197,7 +197,8 @@ process_single_igv_sample() {
     echo "[IGV] Processing $sample_name ($variant_count variants)..."
 
     # Run IGV snapshot script with HG38 genome
-    python3 "$igv_script" "$bam_file" \
+    # 5-minute timeout per sample prevents a stuck IGV instance from blocking all others
+    timeout 300 python3 "$igv_script" "$bam_file" \
         -r "$bed_file" \
         -o "SnapShots" \
         -g hg38 \
@@ -207,8 +208,12 @@ process_single_igv_sample() {
         -nf4 \
         -ht 500 \
         -mem 4000 2>&1
+    local exit_code=$?
 
-    if [ $? -eq 0 ]; then
+    if [ $exit_code -eq 124 ]; then
+        echo "[IGV] Timed out after 5 minutes for $sample_name (skipping)"
+        return 1
+    elif [ $exit_code -eq 0 ]; then
         echo "[IGV] Completed $sample_name"
         return 0
     else
