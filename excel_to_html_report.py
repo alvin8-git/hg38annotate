@@ -366,6 +366,35 @@ body {
 .stat-value { font-size: 2.5rem; font-weight: 700; color: var(--primary-color); }
 .stat-label { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 
+/* CancerVar Tier Badge */
+.cancervar-badge {
+    display: inline-block; padding: 6px 16px; border-radius: 20px;
+    font-size: 0.9rem; font-weight: 700; letter-spacing: 0.3px;
+}
+.cancervar-tier1 { background: var(--tier1-color); color: white; }
+.cancervar-tier2 { background: var(--tier2-color); color: white; }
+.cancervar-tier3 { background: var(--tier3-color); color: #212529; }
+.cancervar-tier4 { background: var(--tier4-color); color: white; }
+.cancervar-unknown { background: #6c757d; color: white; }
+
+/* 0-variant sample cards */
+.sample-card.no-variants .sample-card-header {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+}
+.no-variants-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    background: rgba(255,255,255,0.25); color: rgba(255,255,255,0.9);
+    font-size: 0.75rem; margin-top: 5px;
+}
+.sample-stat-value.zero { color: var(--text-muted); }
+
+/* VAF bar in variant table */
+.vaf-bar-mini {
+    width: 100%; height: 4px; background: #e9ecef;
+    border-radius: 2px; margin-top: 4px; overflow: hidden; min-width: 50px;
+}
+.vaf-bar-mini-fill { height: 100%; border-radius: 2px; background: var(--secondary-color); }
+
 /* Sample Cards */
 .sample-grid {
     display: grid;
@@ -464,6 +493,23 @@ def _pred_badge_class(pred_str):
     return mapping.get(p, "")
 
 
+def _cancervar_tier_badge(cancervar_str: str) -> str:
+    """Generate CancerVar tier badge HTML from 'CancerVar and Evidence' column value."""
+    if not cancervar_str:
+        return ""
+    # Check IV before III before II before I to avoid shorter patterns matching first
+    tier_map = [
+        (r'Tier[_ ]?IV',  "tier4", "Tier IV &mdash; Benign / Likely Benign"),
+        (r'Tier[_ ]?III', "tier3", "Tier III &mdash; Unknown Significance"),
+        (r'Tier[_ ]?II',  "tier2", "Tier II &mdash; Potentially Actionable"),
+        (r'Tier[_ ]?I',   "tier1", "Tier I &mdash; Actionable"),
+    ]
+    for pattern, css_cls, label in tier_map:
+        if re.search(pattern, cancervar_str, re.IGNORECASE):
+            return f'<span class="cancervar-badge cancervar-{css_cls}">{label}</span>'
+    return ""
+
+
 class iSeqReportGenerator:
     def __init__(self, excel_path: str, output_dir: str, snapshots_dir: Optional[str] = None):
         self.excel_path = Path(excel_path)
@@ -557,6 +603,27 @@ class iSeqReportGenerator:
                 return str(filepath.resolve())
         return None
 
+    def _format_data_value(self, col_header: str, value: str) -> str:
+        """Format a cell value as HTML, adding hyperlinks for known column types."""
+        if not value:
+            return escape(value)
+        # COSMIC IDs: COSM12345 (comma- or semicolon-separated)
+        if col_header == "cosmic91":
+            parts = re.split(r'[;,]', value)
+            linked = []
+            for part in parts:
+                part = part.strip()
+                m = re.match(r'COSM(\d+)', part, re.IGNORECASE)
+                if m:
+                    linked.append(
+                        f'<a href="https://cancer.sanger.ac.uk/cosmic/mutation/overview?id={m.group(1)}"'
+                        f' target="_blank">{escape(part)}</a>'
+                    )
+                elif part:
+                    linked.append(escape(part))
+            return '; '.join(linked) if linked else escape(value)
+        return escape(value)
+
     def _data_grid_html(self, row_idx: int, col_indices: List[int]) -> str:
         """Generate data grid HTML, skipping empty values"""
         items = []
@@ -564,11 +631,13 @@ class iSeqReportGenerator:
             value = self._val(row_idx, col_idx)
             if not value:
                 continue
-            label = escape(self._header(col_idx))
+            col_header = self._header(col_idx)
+            label = escape(col_header)
+            value_html = self._format_data_value(col_header, value)
             items.append(f'''
                     <div class="data-item">
                         <div class="data-label">{label}</div>
-                        <div class="data-value monospace">{escape(value)}</div>
+                        <div class="data-value monospace">{value_html}</div>
                     </div>''')
         if not items:
             return '<div style="padding:10px;color:var(--text-muted);font-style:italic;">No data available</div>'
@@ -625,11 +694,28 @@ class iSeqReportGenerator:
         for col_idx in self._cols(CLINVAR_COL_NAMES):
             value = self._val(row_idx, col_idx)
             if value:
-                label = escape(self._header(col_idx))
+                col_header = self._header(col_idx)
+                label = escape(col_header)
+                # Link CLNALLELEID values to ClinVar
+                if col_header == "CLNALLELEID":
+                    parts = re.split(r'[;,]', value)
+                    linked = []
+                    for part in parts:
+                        part = part.strip()
+                        if part.isdigit():
+                            linked.append(
+                                f'<a href="https://www.ncbi.nlm.nih.gov/clinvar/variation/{part}/"'
+                                f' target="_blank">{escape(part)}</a>'
+                            )
+                        elif part:
+                            linked.append(escape(part))
+                    value_html = '; '.join(linked) if linked else escape(value)
+                else:
+                    value_html = escape(value)
                 clinvar_items.append(f'''
                     <div class="data-item">
                         <div class="data-label">{label}</div>
-                        <div class="data-value monospace">{escape(value)}</div>
+                        <div class="data-value monospace">{value_html}</div>
                     </div>''')
 
         if clinvar_items:
@@ -777,12 +863,20 @@ class iSeqReportGenerator:
             alt = self._val_n(row_idx, KEY_COL_NAMES["alt"]) or "-"
             hgvsc = self._val_n(row_idx, KEY_COL_NAMES["hgvsc"]) or "-"
             hgvsp = self._val_n(row_idx, KEY_COL_NAMES["hgvsp"]) or "-"
-            vaf = self._val_n(row_idx, KEY_COL_NAMES["vaf"]) or "-"
+            vaf_raw = self._val_n(row_idx, KEY_COL_NAMES["vaf"]) or "-"
             dp = self._val_n(row_idx, KEY_COL_NAMES["dp"]) or "-"
 
+            vaf_display = vaf_raw
+            vaf_bar_html = ""
             try:
-                vaf_num = float(vaf)
-                vaf = f"{vaf_num*100:.1f}%" if vaf_num <= 1 else vaf
+                vaf_num = float(vaf_raw)
+                vaf_pct = vaf_num * 100 if vaf_num <= 1 else vaf_num
+                vaf_display = f"{vaf_pct:.1f}%"
+                vaf_bar_html = (
+                    f'<div class="vaf-bar-mini">'
+                    f'<div class="vaf-bar-mini-fill" style="width:{min(vaf_pct,100):.1f}%"></div>'
+                    f'</div>'
+                )
             except (ValueError, TypeError):
                 pass
 
@@ -796,7 +890,7 @@ class iSeqReportGenerator:
                     <td style="font-family:monospace;">{escape(chrom)}:{escape(pos)} {escape(ref)}&gt;{escape(alt)}</td>
                     <td style="font-family:monospace;" title="{escape(hgvsc)}">{escape(hgvsc_short)}</td>
                     <td style="font-family:monospace;" title="{escape(hgvsp)}">{escape(hgvsp_short)}</td>
-                    <td>{escape(vaf)}</td>
+                    <td class="vaf-cell">{escape(vaf_display)}{vaf_bar_html}</td>
                     <td>{escape(dp)}</td>
                     <td><a href="variants/{safe_sample}_var{row_idx}.html">View Details</a></td>
                 </tr>'''
@@ -850,6 +944,7 @@ class iSeqReportGenerator:
                 <h1 class="gene-name">{escape(gene)}</h1>
                 <div class="variant-notation">{escape(hgvsp) if hgvsp != "-" else escape(hgvsc)}</div>
             </div>
+            {f'<div>{_cancervar_tier_badge(self._val_n(row_idx, "CancerVar and Evidence"))}</div>'}
         </div>'''
 
         # 1. Basic Variant Information
@@ -957,15 +1052,19 @@ def generate_summary_page(html_dir: str):
         sample_name = sf.stem
         n_variants = len(list(variants_dir.glob(f"{sample_name}_var*.html"))) if variants_dir.exists() else 0
         total_variants += n_variants
+        card_class = "sample-card no-variants" if n_variants == 0 else "sample-card"
+        no_variants_badge = '<div class="no-variants-badge">No variants</div>' if n_variants == 0 else ""
+        count_class = "sample-stat-value zero" if n_variants == 0 else "sample-stat-value"
         cards_html += f'''
-            <a href="samples/{escape(sf.name)}" class="sample-card">
+            <a href="samples/{escape(sf.name)}" class="{card_class}">
                 <div class="sample-card-header">
                     <h3>{escape(sample_name)}</h3>
+                    {no_variants_badge}
                 </div>
                 <div class="sample-card-body">
                     <div class="sample-stat">
                         <span class="sample-stat-label">Variants</span>
-                        <span class="sample-stat-value">{n_variants}</span>
+                        <span class="{count_class}">{n_variants}</span>
                     </div>
                 </div>
             </a>'''
