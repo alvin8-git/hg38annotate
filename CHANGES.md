@@ -2,6 +2,18 @@
 
 ## Unreleased (main)
 
+### 2026-02 — IGV sort-by-base fix
+
+**`make_IGV_snapshots.py`**
+
+- Fixed `sort base` in `write_batchscript_regions()` to pass the explicit variant position:
+  `sort base {chrom}:{pos}`. In IGV 2.3.81 batch mode, `sort base` without a locus argument
+  sorts at an unreliable view-center position and reads appear in default genomic order
+  in the snapshot. Passing the explicit position groups alt vs ref reads correctly at the
+  variant site.
+
+---
+
 ### 2026-02 — IGV timeout and HTML population frequency improvements
 
 **`processVCF-hg38.sh`**

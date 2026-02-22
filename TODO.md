@@ -58,6 +58,10 @@
   parallel instances race for resources) from blocking GNU parallel and delaying the HTML
   stage indefinitely. Exit code 124 is caught and logged as
   "[IGV] Timed out after 5 minutes for \<sample\> (skipping)".
+- [x] Fix IGV `sort base` to pass explicit variant position — `sort base {chrom}:{pos}` in
+  `write_batchscript_regions()` (`make_IGV_snapshots.py`). Without a locus argument,
+  IGV 2.3.81 batch mode leaves reads in default position order; the explicit position
+  causes IGV to group alt vs ref reads at the variant site.
 
 ### Annotation Combiner Robustness
 - [x] Replace hardcoded `cut -f<N>` column positions in `combine_annotations()` with
