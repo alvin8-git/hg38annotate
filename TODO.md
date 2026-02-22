@@ -63,6 +63,18 @@
   `compare.txt` retains position-based cut (column names are run-specific).
   Validated end-to-end in Docker: all column names correct in xlsx output, 10 IGV
   snapshots and 5 HTML pages generated as expected.
+- [x] Fix SG10K and genomeAsia database lookups:
+  - Updated `SG10K_DB` default to `$DATABASES_DIR/hg38annotate/SG10K.genes.txt.gz`
+    (was pointing to a non-existent path).
+  - Updated `GENOMEASIA_DB` default to `$DATABASES_DIR/hg38annotate/genomeAsia.All.hg38.txt.gz`
+    (was pointing to a non-existent path).
+  - Rewrote `run_sg10k()` and `run_genomeasia()` to use `tabix` for fast per-variant lookup
+    instead of slow full-file awk join. Chr prefix (`chr1` → `1`) stripped for tabix query.
+  - Fixed genomeAsia column names in `cols_by_name` call: `SEA_AF/NEA_AF/SAS_AF` →
+    `AF_SEA/AF_NEA/AF_SAS` (matching actual column names in the database file header).
+  - Output headers now: SG10K `CHR POS REF ALT AF_All AF_CHS AF_INS AF_MAS`;
+    genomeAsia `CHR POS REF ALT AF_SEA AF_NEA AF_SAS`.
+  - Validated: AF values populated for matching SNPs, `.` for indels/absent variants.
 
 ### HTML Report Landing Page
 - [x] Remove `index.html` generation — `generate_landing_page()` and its `index.html` write

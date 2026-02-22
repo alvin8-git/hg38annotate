@@ -49,8 +49,8 @@ HUMANDB="${HUMANDB:-$DATABASES_DIR/humandb}"
 VEP_CACHE="${VEP_CACHE:-$DATABASES_DIR/vep}"
 HG38_FASTA="${HG38_FASTA:-$DATABASES_DIR/hg38/hg38.fa}"
 REFSEQ_TRANSCRIPTS="${REFSEQ_TRANSCRIPTS:-$DATABASES_DIR/Ensembldata/RefSeqSelectTranscript.txt}"
-SG10K_DB="${SG10K_DB:-$DATABASES_DIR/SG10K.hg38.vcf/SG10K.genes.txt}"
-GENOMEASIA_DB="${GENOMEASIA_DB:-$DATABASES_DIR/genomeAsia/genomeAsia.genes.txt}"
+SG10K_DB="${SG10K_DB:-$DATABASES_DIR/hg38annotate/SG10K.genes.txt.gz}"
+GENOMEASIA_DB="${GENOMEASIA_DB:-$DATABASES_DIR/hg38annotate/genomeAsia.All.hg38.txt.gz}"
 
 # Mode-specific configuration
 VCF_DATABASE="$DATABASES_DIR/iSeq/vcf-hg38"
@@ -492,19 +492,24 @@ run_sg10k() {
     local sample=$(basename "$vcf" .vcf)
 
     [ -f "$sample.SG10k.txt" ] && return 0
-    [ ! -f "$SG10K_DB" ] && { log_warn "SG10K database not found, skipping"; return 0; }
+    [ ! -f "$SG10K_DB" ] && { log_warn "SG10K database not found: $SG10K_DB, skipping"; return 0; }
 
     log_info "Starting SG10K annotation for $sample"
 
-    awk '{if($1!~/^#/)print $1"\t"$2"\t"$4"\t"$5}' "$vcf" > "$sample.noheader.vcf"
-
-    awk -F"\t" 'NR==FNR{a[$1"_"$2"_"$3"_"$4]=$0;next}{if(($1"_"$2"_"$3"_"$4 in a))print a[$1"_"$2"_"$3"_"$4];else print $1"\t"$2"\t"$3"\t"$4"\t-\t-\t-\t-\t-\t-\t-\t-"}' \
-        "$SG10K_DB" "$sample.noheader.vcf" \
-        > "$sample.SG10k.txt"
-
-    sed -i '1s/^/CHR\tBP.B38\tREF\tALT\tAN_All\tAF_All\tAN_CHS\tAF_CHS\tAN_INS\tAF_INS\tAN_MAS\tAF_MAS\n/' "$sample.SG10k.txt"
-
-    rm -f "$sample.noheader.vcf"
+    # SG10K uses chromosomes without chr prefix (1, 2, ...) — strip chr for tabix query.
+    # Columns: CHR POS REF ALT AN AF_All AN_CHS AF_CHS AN_INS AF_INS AN_MAS AF_MAS
+    #                              $6      $8      $10     $12
+    {
+        printf 'CHR\tPOS\tREF\tALT\tAF_All\tAF_CHS\tAF_INS\tAF_MAS\n'
+        grep -v "^#" "$vcf" | awk '{print $1"\t"$2"\t"$4"\t"$5}' | \
+        while IFS=$'\t' read -r chr pos ref alt; do
+            qchr="${chr#chr}"
+            tabix "$SG10K_DB" "${qchr}:${pos}-${pos}" 2>/dev/null | \
+                awk -F'\t' -v ref="$ref" -v alt="$alt" -v chr="$chr" -v pos="$pos" \
+                    '$3==ref && $4==alt {print chr"\t"pos"\t"ref"\t"alt"\t"$6"\t"$8"\t"$10"\t"$12; found=1; exit}
+                     END{if(!found) print chr"\t"pos"\t"ref"\t"alt"\t.\t.\t.\t."}'
+        done
+    } > "$sample.SG10k.txt"
 
     log_success "SG10K completed for $sample"
 }
@@ -514,16 +519,24 @@ run_genomeasia() {
     local sample=$(basename "$vcf" .vcf)
 
     [ -f "$sample.genomeAsia.txt" ] && return 0
-    [ ! -f "$GENOMEASIA_DB" ] && { log_warn "GenomeAsia database not found, skipping"; return 0; }
+    [ ! -f "$GENOMEASIA_DB" ] && { log_warn "GenomeAsia database not found: $GENOMEASIA_DB, skipping"; return 0; }
 
     log_info "Starting GenomeAsia annotation for $sample"
 
-    awk -F"\t" 'NR==FNR{a[$1"_"$2"_"$3"_"$4]=$0;next}{if($1"_"$2"_"$3"_"$4 in a)print a[$1"_"$2"_"$3"_"$4];else print $1"\t"$2"\t"$3"\t"$4"\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-"}' \
-        "$GENOMEASIA_DB" \
-        <(grep -v "^#" "$vcf" | cut -f1,2,4,5) | \
-        sort -k1,1V -k2,2n | \
-        sed '1s/^/CHR\tPOS\tREF\tALT\tSEA_AN\tSEA_AC\tSEA_AF\tSEA_HOM\tNEA_AN\tNEA_AC\tNEA_AF\tNEA_HOM\tSAS_AN\tSAS_AC\tSAS_AF\tSAS_HOM\n/' \
-        > "$sample.genomeAsia.txt"
+    # GenomeAsia uses chromosomes without chr prefix (1, 2, ...) — strip chr for tabix query.
+    # Columns: CHROM POS REF ALT AN_SEA AC_SEA AF_SEA HOM_SEA AN_NEA AC_NEA AF_NEA HOM_NEA AN_SAS AC_SAS AF_SAS HOM_SAS
+    #                              $7             $11             $15
+    {
+        printf 'CHR\tPOS\tREF\tALT\tAF_SEA\tAF_NEA\tAF_SAS\n'
+        grep -v "^#" "$vcf" | awk '{print $1"\t"$2"\t"$4"\t"$5}' | \
+        while IFS=$'\t' read -r chr pos ref alt; do
+            qchr="${chr#chr}"
+            tabix "$GENOMEASIA_DB" "${qchr}:${pos}-${pos}" 2>/dev/null | \
+                awk -F'\t' -v ref="$ref" -v alt="$alt" -v chr="$chr" -v pos="$pos" \
+                    '$3==ref && $4==alt {print chr"\t"pos"\t"ref"\t"alt"\t"$7"\t"$11"\t"$15; found=1; exit}
+                     END{if(!found) print chr"\t"pos"\t"ref"\t"alt"\t.\t.\t."}'
+        done
+    } > "$sample.genomeAsia.txt"
 
     log_success "GenomeAsia completed for $sample"
 }
@@ -763,7 +776,7 @@ combine_annotations() {
             <(cols_by_name "$sample.SG10k.txt"    \
                 "AF_All" "AF_CHS" "AF_INS" "AF_MAS") \
             <(cols_by_name "$sample.genomeAsia.txt" \
-                "SEA_AF" "NEA_AF" "SAS_AF") \
+                "AF_SEA" "AF_NEA" "AF_SAS") \
             <(cols_by_name "$sample.annovar.txt"  \
                 "esp6500siv2_all" \
                 "ExAC_ALL" "ExAC_AFR" "ExAC_AMR" "ExAC_EAS" \

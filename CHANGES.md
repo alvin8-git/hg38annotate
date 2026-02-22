@@ -2,6 +2,23 @@
 
 ## Unreleased (main)
 
+### 2026-02 — SG10K and genomeAsia tabix lookup fix
+
+**`mergeVCFannotation-optimized-hg38.sh`**
+
+- Fixed `SG10K_DB` default path: `$DATABASES_DIR/hg38annotate/SG10K.genes.txt.gz`
+  (old path pointed to a non-existent directory).
+- Fixed `GENOMEASIA_DB` default path: `$DATABASES_DIR/hg38annotate/genomeAsia.All.hg38.txt.gz`
+  (old path pointed to a non-existent directory).
+- Rewrote `run_sg10k()` to use `tabix` for per-variant lookup instead of a full-file
+  awk join. Strips `chr` prefix before querying (database uses bare chromosome numbers).
+  Output columns: `CHR POS REF ALT AF_All AF_CHS AF_INS AF_MAS`.
+- Rewrote `run_genomeasia()` similarly. Output columns: `CHR POS REF ALT AF_SEA AF_NEA AF_SAS`.
+- Fixed `cols_by_name` column names for genomeAsia in `combine_annotations()`:
+  `SEA_AF/NEA_AF/SAS_AF` → `AF_SEA/AF_NEA/AF_SAS` (matching actual file header).
+- Validated: AF values populated for matching SNPs, `.` for indels/absent variants.
+  Both lookups complete in < 1 second for TestData (27 variants).
+
 ### 2026-02 — Header-name column lookup in annotation combiner
 
 **`mergeVCFannotation-optimized-hg38.sh`**

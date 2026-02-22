@@ -283,7 +283,8 @@ See [CHANGES.md](CHANGES.md) for the full version history.
 
 | Version | Date | Highlights |
 |---------|------|-----------|
-| main | 2026-02 | `cols_by_name()` header-lookup in annotation combiner; skip `Combine.Filter.txt` in IGV stage |
+| main | 2026-02 | SG10K/genomeAsia tabix lookup fix; correct DB paths and column names (`AF_SEA/AF_NEA/AF_SAS`) |
+| — | 2026-02 | `cols_by_name()` header-lookup in annotation combiner; skip `Combine.Filter.txt` in IGV stage |
 | — | 2026-02 | `--dry-run` flag; VEP/snpEff warning surfacing; gnomAD column verification |
 | — | 2026-02 | HTML improvements: CancerVar tier badge, VAF bar, 0-variant badge, COSMIC/ClinVar links |
 | — | 2026-02 | Rootless Docker ownership fix; annotation stage tracking fix; Summary.html landing page |
