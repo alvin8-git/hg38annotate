@@ -49,6 +49,20 @@
 - [x] Fix `check_html_complete()` in `processVCF-hg38.sh`: was checking for `> 1` root-level
   HTML files (relied on both `index.html` + `Summary.html`). Now checks for `Summary.html`
   existence directly, since that is the sole root-level landing page.
+- [x] Fix IGV stage: `Combine.Filter.txt` (merged multi-sample VCF) was included in the
+  per-sample IGV loop, producing a spurious "No BAM file found for Combine, skipping..."
+  warning on every run. Filter-file loop in `generate_igv_snapshots()` now explicitly skips
+  filenames `Combine` and `Merge`.
+
+### Annotation Combiner Robustness
+- [x] Replace hardcoded `cut -f<N>` column positions in `combine_annotations()` with
+  `cols_by_name()` header-name lookup — new awk-based helper reads the file header at
+  runtime and emits columns in the order listed, so the combined output is resilient to
+  column additions or reordering in upstream tool outputs (annovar-fast, snpEff, transvar,
+  CancerVar, VEP, SG10K, genomeAsia). Column names are now self-documenting in the source.
+  `compare.txt` retains position-based cut (column names are run-specific).
+  Validated end-to-end in Docker: all column names correct in xlsx output, 10 IGV
+  snapshots and 5 HTML pages generated as expected.
 
 ### HTML Report Landing Page
 - [x] Remove `index.html` generation — `generate_landing_page()` and its `index.html` write

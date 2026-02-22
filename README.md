@@ -271,7 +271,7 @@ docker run --rm \
 | Script | Description |
 |--------|-------------|
 | `processVCF-hg38.sh` | Main pipeline orchestrator — runs all 3 stages with status tracking |
-| `mergeVCFannotation-optimized-hg38.sh` | Parallel annotation engine (annovar-fast, VEP, snpEff, TransVar, cancervar-fast) |
+| `mergeVCFannotation-optimized-hg38.sh` | Parallel annotation engine (annovar-fast, VEP, snpEff, TransVar, cancervar-fast); columns resolved by header name via `cols_by_name()` |
 | `make_IGV_snapshots.py` | Headless IGV automation via xvfb |
 | `excel_to_html_report.py` | Converts per-sample xlsx to interactive HTML variant reports; column positions resolved by header name, not hardcoded index |
 | `entrypoint.sh` | Docker entrypoint — detects rootless vs standard Docker and sets file ownership accordingly |
@@ -283,7 +283,8 @@ See [CHANGES.md](CHANGES.md) for the full version history.
 
 | Version | Date | Highlights |
 |---------|------|-----------|
-| main | 2026-02 | Header-name column lookup in annotation combiner; `--dry-run`; VEP/snpEff warning surfacing |
+| main | 2026-02 | `cols_by_name()` header-lookup in annotation combiner; skip `Combine.Filter.txt` in IGV stage |
+| — | 2026-02 | `--dry-run` flag; VEP/snpEff warning surfacing; gnomAD column verification |
 | — | 2026-02 | HTML improvements: CancerVar tier badge, VAF bar, 0-variant badge, COSMIC/ClinVar links |
 | — | 2026-02 | Rootless Docker ownership fix; annotation stage tracking fix; Summary.html landing page |
 | — | 2025 | Initial pipeline: annovar-fast + cancervar-fast integration, parallel annotation, IGV, HTML |
