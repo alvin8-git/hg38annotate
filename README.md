@@ -147,7 +147,7 @@ docker run --rm -it \
 
 Expected results (total pipeline ~2 minutes):
 - **Annotation stage**: ~33 seconds, produces `TestData/output/*.xlsx` (6 files: 5 per-sample + `Combine.xlsx`), 27 variants across 5 samples; SG10K (AF_All, AF_CHS, AF_INS, AF_MAS) and GenomeAsia (AF_SEA, AF_NEA, AF_SAS) allele frequencies populated for matching SNPs
-- **IGV stage**: ~80 seconds, 10 PNG snapshots — one per filtered variant per sample (S02×1, S12×1, S26×3, S32×1, S51×4); each IGV instance has a 5-minute timeout so a slow/stuck instance does not block the pipeline
+- **IGV stage**: ~80 seconds, 10 PNG snapshots — one per filtered variant per sample (S02×1, S12×1, S26×3, S32×1, S51×4); each IGV instance has a 5-minute timeout so a slow/stuck instance does not block the pipeline; reads are sorted by base at the variant position (`sort base chr:pos`) so alt vs ref reads are visually grouped
 - **HTML stage**: ~1 second, `TestData/output/html_reports/Summary.html` + 5 sample pages + 10 per-variant detail pages with embedded IGV screenshots, ACMG chips, ClinVar, prediction scores, and SG10K/GenomeAsia population frequencies with source-prefixed labels (e.g. `SG10K_AF_CHS`, `GenomeAsia_AF_SEA`)
 
 ### Run individual stages
@@ -272,7 +272,7 @@ docker run --rm \
 |--------|-------------|
 | `processVCF-hg38.sh` | Main pipeline orchestrator — runs all 3 stages with status tracking |
 | `mergeVCFannotation-optimized-hg38.sh` | Parallel annotation engine (annovar-fast, VEP, snpEff, TransVar, cancervar-fast); columns resolved by header name via `cols_by_name()` |
-| `make_IGV_snapshots.py` | Headless IGV automation via xvfb |
+| `make_IGV_snapshots.py` | Headless IGV automation via xvfb; reads sorted by base at variant position (`sort base chr:pos`) |
 | `excel_to_html_report.py` | Converts per-sample xlsx to interactive HTML variant reports; column positions resolved by header name, not hardcoded index |
 | `entrypoint.sh` | Docker entrypoint — detects rootless vs standard Docker and sets file ownership accordingly |
 | `check_docker_deps.sh` | Verifies all tools and databases are available inside the container |
@@ -283,7 +283,9 @@ See [CHANGES.md](CHANGES.md) for the full version history.
 
 | Version | Date | Highlights |
 |---------|------|-----------|
-| main | 2026-02 | SG10K/genomeAsia tabix lookup fix; correct DB paths and column names (`AF_SEA/AF_NEA/AF_SAS`) |
+| main | 2026-02 | IGV `sort base chr:pos` fix — reads now sorted by base at variant position in snapshots |
+| — | 2026-02 | IGV 5-minute timeout; GenomeAsia AF columns + SG10K/GenomeAsia prefixed labels in HTML |
+| — | 2026-02 | SG10K/genomeAsia tabix lookup fix; correct DB paths and column names (`AF_SEA/AF_NEA/AF_SAS`) |
 | — | 2026-02 | `cols_by_name()` header-lookup in annotation combiner; skip `Combine.Filter.txt` in IGV stage |
 | — | 2026-02 | `--dry-run` flag; VEP/snpEff warning surfacing; gnomAD column verification |
 | — | 2026-02 | HTML improvements: CancerVar tier badge, VAF bar, 0-variant badge, COSMIC/ClinVar links |
