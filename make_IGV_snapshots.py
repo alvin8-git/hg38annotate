@@ -158,8 +158,14 @@ def write_batchscript_regions(region_file, batchscript_file, height, suffix, nf4
         igv_loc = make_IGV_chrom_loc(region)
         snapshot_filename = make_snapshot_filename(region, height, suffix=suffix)
 
+        chrom, start, stop = region[0:3]
+        # Sort at the explicit variant position so IGV groups alt vs ref reads together.
+        # Without a locus argument "sort base" sorts at an unreliable view-center position
+        # in IGV 2.3.81 batch mode and reads appear unsorted in the snapshot.
+        sort_locus = f"{chrom}:{start}"
+
         append_string(f"goto {igv_loc}", batchscript_file)
-        append_string("sort base", batchscript_file)
+        append_string(f"sort base {sort_locus}", batchscript_file)
 
         if group_by_strand:
             append_string("group strand", batchscript_file)
