@@ -119,6 +119,69 @@ filter_anno_iseq() {
 export -f filter_anno_iseq
 
 # =============================================================================
+# COLUMN EXTRACTION HELPERS
+# =============================================================================
+
+# cols_by_name FILE COL [COL ...]
+#
+# Extract named columns from a tab-separated file that has a header row.
+# Columns are emitted in the ORDER LISTED (not the order they appear in the file).
+# Leading/trailing whitespace is stripped from header values before matching, so
+# column names with embedded spaces (e.g. CancerVar output) are handled correctly.
+# Unknown column names produce empty fields.
+#
+# When the file is absent the column names are written as a header row with no
+# data rows; paste will then emit empty strings for all data rows from that input.
+#
+# Usage in a paste pipeline:
+#   paste <(cols_by_name file.txt "ColA" "ColB") <(cols_by_name other.txt "X")
+#
+cols_by_name() {
+    local file="$1"
+    shift
+
+    if [ ! -f "$file" ]; then
+        # Emit column names as a header row only; paste fills empty strings for data.
+        ( IFS=$'\t'; echo "$*" )
+        return 0
+    fi
+
+    # Use \x01 as a safe separator — column names may contain spaces, tabs would
+    # be misinterpreted, and \x01 never appears in biological column names.
+    local col_spec ncols
+    col_spec=$(printf '%s\x01' "$@")
+    ncols=$#
+
+    awk -v col_spec="$col_spec" -v ncols="$ncols" '
+    BEGIN {
+        FS  = "\t"
+        OFS = "\t"
+        n   = split(col_spec, want, "\x01")
+        if (n > 0 && want[n] == "") n--   # discard trailing empty from split
+    }
+    NR == 1 {
+        # Build header → column-index map, stripping leading/trailing whitespace
+        for (i = 1; i <= NF; i++) {
+            h = $i
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", h)
+            hdr[h] = i
+        }
+        # Print header using the requested column names (exactly as passed)
+        for (k = 1; k <= n; k++)
+            printf "%s%s", want[k], (k < n ? OFS : "\n")
+        next
+    }
+    {
+        for (k = 1; k <= n; k++) {
+            col = want[k]
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", col)
+            val = (col in hdr) ? $(hdr[col]) : ""
+            printf "%s%s", val, (k < n ? OFS : "\n")
+        }
+    }' "$file"
+}
+
+# =============================================================================
 # LOGGING
 # =============================================================================
 
@@ -672,39 +735,81 @@ combine_annotations() {
 
     log_step "COMBINING ANNOTATIONS"
 
-    # Combine annotations for HG38 (adjusted column numbers for hg38 annovar output)
-    # Column layout of annovar output (verify_annovar_columns checks key gnomAD names):
-    #   f18-32  : esp6500siv2_all, ExAC_*, 1000g2015aug_*
-    #   f33-61  : InterVar_automated, ACMG criteria (PVS1..BP7)
-    #   f62-64  : Kaviar_AF/AC/AN
-    #   f65-66  : MCAP, REVEL
-    #   f67     : gnomad41_exome_AF  (+ selected sub-pop exome AFs below)
-    #   f84     : gnomad41_genome_AF (+ selected sub-pop genome AFs below)
-    #   f88,90-95: gnomad41_genome_AF_afr/amr/asj/eas/fin/nfe/remaining
-    #   f97     : snp141 (dbSNP rsID)
-    #   f98-122 : SIFT, PolyPhen2, LRT, MutationTaster, CADD, etc.
-    #   f123-127: additional pathogenicity scores
-    #   f131-144: HRC_*, GME_*
-    #   f153-154: cg69, nci60
-    #   f157-159: phastConsElements100way, targetScanS, Otherinfo (unused)
+    # Combine annotations for HG38.
+    # Columns are selected by HEADER NAME via cols_by_name() so the combined output
+    # is resilient to column additions or reordering in upstream tool outputs.
+    # The listing order within each cols_by_name call defines the output column order
+    # and must be kept consistent with the positional assumptions in filter_anno_iseq():
+    #   annotation.txt col 22 = ExonicFunc.refGene
+    #   annotation.txt col 23 = Func.ensGene
+    #   annotation.txt col 25 = Consequence (VEP)
+    #   annotation.txt col 12 = DP
+    #   annotation.txt col 14 = VAF
     if [ -f "$sample.annovar.txt" ] && [ -f "$sample.snpEff.txt" ] && [ -f "$sample.transvar.txt" ]; then
         paste \
             <(grep -v "^#" "$sample.vcf" | cut -f1-2,4-5 | sed 's/:\S*//g' | sed '1i Chr\tPos\tRef\tAlt') \
-            <(cut -f10 "$sample.snpEff.txt") \
-            <(cut -f5,8-10 "$sample.transvar.txt") \
-            <(cut -f97 "$sample.annovar.txt" 2>/dev/null || echo "") \
-            <(cut -f42 "$sample.CancerVar.txt" 2>/dev/null | sed 's/ID=//g' || echo "") \
-            <(cut -f14 "$sample.CancerVar.txt" 2>/dev/null | sed 's/ CancerVar: //g' || echo "") \
+            <(cols_by_name "$sample.snpEff.txt"   "GENE") \
+            <(cols_by_name "$sample.transvar.txt" "Transcript" "HGVSg" "HGVSc" "HGVSp") \
+            <(cols_by_name "$sample.annovar.txt"  "snp141") \
+            <(cols_by_name "$sample.CancerVar.txt" "cosmic91" | sed 's/ID=//g') \
+            <(cols_by_name "$sample.CancerVar.txt" "CancerVar: CancerVar and Evidence" \
+                | sed 's/^CancerVar: //; s/ CancerVar: //g') \
             <(cut -f5-6 "$sample.compare.txt" 2>/dev/null || echo "") \
-            <(cut -f5 "$sample.snpEff.txt") \
-            <(cut -f11,9,16 "$sample.annovar.txt" 2>/dev/null || echo "") \
-            <(cut -f7,16,18,39-40 "$sample.vep.txt" 2>/dev/null || echo "") \
-            <(cut -f6,8,10,12 "$sample.SG10k.txt" 2>/dev/null || echo "") \
-            <(cut -f7,11,15 "$sample.genomeAsia.txt" 2>/dev/null || echo "") \
-            <(cut -f18-32,62-64,67,72,74,78,75,77,76,79,73,84,88,90-95 "$sample.annovar.txt" 2>/dev/null || echo "") \
-            <(cut -f131-144,153-154 "$sample.annovar.txt" 2>/dev/null || echo "") \
-            <(cut -f33-61,123-127 "$sample.annovar.txt" 2>/dev/null || echo "") \
-            <(cut -f65-66,98-122,157-159 "$sample.annovar.txt" 2>/dev/null || echo "") \
+            <(cols_by_name "$sample.snpEff.txt"   "FILTER") \
+            <(cols_by_name "$sample.annovar.txt"  \
+                "ExonicFunc.refGene" "Func.ensGene" "cytoBand") \
+            <(cols_by_name "$sample.vep.txt"      \
+                "Consequence" "STRAND" "VARIANT_CLASS" "EXON" "INTRON") \
+            <(cols_by_name "$sample.SG10k.txt"    \
+                "AF_All" "AF_CHS" "AF_INS" "AF_MAS") \
+            <(cols_by_name "$sample.genomeAsia.txt" \
+                "SEA_AF" "NEA_AF" "SAS_AF") \
+            <(cols_by_name "$sample.annovar.txt"  \
+                "esp6500siv2_all" \
+                "ExAC_ALL" "ExAC_AFR" "ExAC_AMR" "ExAC_EAS" \
+                "ExAC_FIN" "ExAC_NFE" "ExAC_OTH" "ExAC_SAS" \
+                "1000g2015aug_all" "1000g2015aug_afr" "1000g2015aug_eas" \
+                "1000g2015aug_amr" "1000g2015aug_eur" "1000g2015aug_sas" \
+                "Kaviar_AF" "Kaviar_AC" "Kaviar_AN" \
+                "gnomad41_exome_AF" \
+                "gnomad41_exome_AF_afr" "gnomad41_exome_AF_sas" \
+                "gnomad41_exome_AF_amr" "gnomad41_exome_AF_eas" \
+                "gnomad41_exome_AF_nfe" "gnomad41_exome_AF_fin" \
+                "gnomad41_exome_AF_asj" "gnomad41_exome_AF_remaining" \
+                "gnomad41_genome_AF" \
+                "gnomad41_genome_AF_afr" \
+                "gnomad41_genome_AF_amr" "gnomad41_genome_AF_asj" \
+                "gnomad41_genome_AF_eas" "gnomad41_genome_AF_fin" \
+                "gnomad41_genome_AF_nfe" "gnomad41_genome_AF_remaining") \
+            <(cols_by_name "$sample.annovar.txt"  \
+                "HRC_AF" "HRC_AC" "HRC_AN" \
+                "HRC_non1000G_AF" "HRC_non1000G_AC" "HRC_non1000G_AN" \
+                "GME_AF" "GME_NWA" "GME_NEA" "GME_AP" \
+                "GME_Israel" "GME_SD" "GME_TP" "GME_CA" \
+                "cg69" "nci60") \
+            <(cols_by_name "$sample.annovar.txt"  \
+                "InterVar_automated" \
+                "PVS1" "PS1" "PS2" "PS3" "PS4" \
+                "PM1" "PM2" "PM3" "PM4" "PM5" "PM6" \
+                "PP1" "PP2" "PP3" "PP4" "PP5" \
+                "BA1" "BS1" "BS2" "BS3" "BS4" \
+                "BP1" "BP2" "BP3" "BP4" "BP5" "BP6" "BP7" \
+                "CLNALLELEID" "CLNDN" "CLNDISDB" "CLNREVSTAT" "CLNSIG") \
+            <(cols_by_name "$sample.annovar.txt"  \
+                "MCAP" "REVEL" \
+                "SIFT_score" "SIFT_pred" \
+                "Polyphen2_HDIV_score" "Polyphen2_HDIV_pred" \
+                "Polyphen2_HVAR_score" "Polyphen2_HVAR_pred" \
+                "LRT_score" "LRT_pred" \
+                "MutationTaster_score" "MutationTaster_pred" \
+                "MutationAssessor_score" "MutationAssessor_pred" \
+                "FATHMM_score" "FATHMM_pred" \
+                "MetaSVM_score" "MetaSVM_pred" \
+                "MetaLR_score" "MetaLR_pred" \
+                "VEST4_score" "CADD_raw" "CADD_phred" \
+                "GERP++_RS" \
+                "phyloP30way_mammalian" "phyloP100way_vertebrate" "SiPhy_29way_logOdds" \
+                "phastConsElements30way" "phastConsElements100way" "targetScanS") \
             > "$sample.Anno1.txt" 2>/dev/null || true
 
         # Fix IKZF1 annotations

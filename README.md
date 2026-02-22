@@ -220,7 +220,6 @@ output/
 │   └── ...                              # one PNG per filtered variant per sample
 └── html_reports/
     ├── Summary.html             # Landing page linking to all samples
-    ├── index.html               # Last-generated sample index
     └── samples/
         ├── iSeq-001-S02_S82.html        # Variant table for this sample
         └── variants/
@@ -277,6 +276,17 @@ docker run --rm \
 | `excel_to_html_report.py` | Converts per-sample xlsx to interactive HTML variant reports; column positions resolved by header name, not hardcoded index |
 | `entrypoint.sh` | Docker entrypoint — detects rootless vs standard Docker and sets file ownership accordingly |
 | `check_docker_deps.sh` | Verifies all tools and databases are available inside the container |
+
+## Changelog
+
+See [CHANGES.md](CHANGES.md) for the full version history.
+
+| Version | Date | Highlights |
+|---------|------|-----------|
+| main | 2026-02 | Header-name column lookup in annotation combiner; `--dry-run`; VEP/snpEff warning surfacing |
+| — | 2026-02 | HTML improvements: CancerVar tier badge, VAF bar, 0-variant badge, COSMIC/ClinVar links |
+| — | 2026-02 | Rootless Docker ownership fix; annotation stage tracking fix; Summary.html landing page |
+| — | 2025 | Initial pipeline: annovar-fast + cancervar-fast integration, parallel annotation, IGV, HTML |
 
 ## License
 
