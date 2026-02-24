@@ -38,8 +38,13 @@ RUN groupadd --gid $USER_GID $USERNAME \
 # a working apt, we mark repos as trusted for the initial install.  Packages
 # are still fetched from Ubuntu's official archive — only the GPG signature
 # check is skipped during this build step.
+#
+# JAVA_TOOL_OPTIONS="-XX:+UseSerialGC" prevents JDK post-install hooks
+# (ca-certificates-java) from failing with "pthread_create failed (EPERM)"
+# on Docker hosts whose seccomp profile restricts thread creation during build.
 RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
     rm -f /etc/apt/apt.conf.d/docker-clean && \
+    export JAVA_TOOL_OPTIONS="-XX:+UseSerialGC" && \
     apt-get update && apt-get install -y --no-install-recommends \
     # Core utilities
     bash \
