@@ -31,16 +31,21 @@ RUN groupadd --gid $USER_GID $USERNAME \
 # SYSTEM PACKAGES
 # =============================================================================
 
-# Bootstrap apt keyring.
-# Older cached ubuntu:22.04 base images may be missing signing key 871920D1991BC93C
-# (introduced after Ubuntu's archive key rotation) or have keyring files with permissions
-# that the _apt user cannot read.  Fix: do an insecure first-pass update to fetch current
-# package lists, install the latest ubuntu-keyring (unauthenticated), then do a clean
-# update so all subsequent installs are properly signature-verified.
-RUN apt-get update \
-        -o Acquire::AllowInsecureRepositories=true \
-        -o Acquire::AllowDowngradeToInsecureRepositories=true 2>&1 || true && \
-    apt-get install -y --allow-unauthenticated ubuntu-keyring && \
+# Fix GPG keyring permissions for older ubuntu:22.04 base images.
+# The keyring files in /etc/apt/trusted.gpg.d/ may not be accessible by the _apt user
+# that apt spawns to verify signatures:
+#   - The directory may be missing the execute bit for others (_apt cannot traverse it)
+#   - The .gpg files may be 640/600 (not world-readable), or be symlinks to files
+#     in another layer with wrong permissions
+# Fix: ensure the directory is 755, then for each .gpg file, cp (follows symlinks)
+# to a temp file, chmod 644, and move back — guaranteeing a plain 644 regular file
+# regardless of the original file type or permissions.
+RUN chmod 755 /etc/apt/trusted.gpg.d/ && \
+    for f in /etc/apt/trusted.gpg.d/*.gpg; do \
+        [ -e "$f" ] || continue; \
+        tmp="${f}.tmp"; \
+        cp -- "$f" "$tmp" && chmod 644 "$tmp" && mv -- "$tmp" "$f"; \
+    done && \
     apt-get update && apt-get install -y --no-install-recommends \
     # Core utilities
     bash \
