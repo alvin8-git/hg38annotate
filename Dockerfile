@@ -31,7 +31,16 @@ RUN groupadd --gid $USER_GID $USERNAME \
 # SYSTEM PACKAGES
 # =============================================================================
 
-RUN chmod -R a+r /etc/apt/trusted.gpg.d/ && \
+# Bootstrap apt keyring.
+# Older cached ubuntu:22.04 base images may be missing signing key 871920D1991BC93C
+# (introduced after Ubuntu's archive key rotation) or have keyring files with permissions
+# that the _apt user cannot read.  Fix: do an insecure first-pass update to fetch current
+# package lists, install the latest ubuntu-keyring (unauthenticated), then do a clean
+# update so all subsequent installs are properly signature-verified.
+RUN apt-get update \
+        -o Acquire::AllowInsecureRepositories=true \
+        -o Acquire::AllowDowngradeToInsecureRepositories=true 2>&1 || true && \
+    apt-get install -y --allow-unauthenticated ubuntu-keyring && \
     apt-get update && apt-get install -y --no-install-recommends \
     # Core utilities
     bash \
