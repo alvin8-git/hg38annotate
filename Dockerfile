@@ -39,6 +39,7 @@ RUN groupadd --gid $USER_GID $USERNAME \
 # are still fetched from Ubuntu's official archive — only the GPG signature
 # check is skipped during this build step.
 RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
+    rm -f /etc/apt/apt.conf.d/docker-clean && \
     apt-get update && apt-get install -y --no-install-recommends \
     # Core utilities
     bash \
