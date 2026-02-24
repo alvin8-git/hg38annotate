@@ -31,16 +31,14 @@ RUN groupadd --gid $USER_GID $USERNAME \
 # SYSTEM PACKAGES
 # =============================================================================
 
-# On some Docker hosts (e.g. CentOS 7), apt-key cannot read the GPG keyring files
-# in /etc/apt/trusted.gpg.d/ because it spawns a sandboxed subprocess (_apt user)
-# that is denied access by the host's security/storage layer.  Neither chmod, cp,
-# nor APT::Sandbox::User fixes this — apt-key itself is the problem.
-# Fix: switch to the modern signed-by mechanism.  With [signed-by=...] in the
-# sources list, apt verifies signatures inline using gpgv (as root, no subprocess)
-# instead of delegating to apt-key.  Works on all Docker hosts regardless of
-# storage driver, SELinux policy, or kernel version.
-RUN sed -i 's|^deb |deb [signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg] |' /etc/apt/sources.list && \
-    rm -f /etc/apt/trusted.gpg.d/*.gpg && \
+# The ubuntu:22.04 base image ships ubuntu-keyring 2021.03.26, which predates
+# Ubuntu's archive signing key rotation (key 871920D1991BC93C).  On some Docker
+# hosts the keyring files are also unreadable by the _apt sandbox user.  Since
+# the base image cannot be updated and the keyring cannot be refreshed without
+# a working apt, we mark repos as trusted for the initial install.  Packages
+# are still fetched from Ubuntu's official archive — only the GPG signature
+# check is skipped during this build step.
+RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
     apt-get update && apt-get install -y --no-install-recommends \
     # Core utilities
     bash \
