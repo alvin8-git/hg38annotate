@@ -31,7 +31,8 @@ RUN groupadd --gid $USER_GID $USERNAME \
 # SYSTEM PACKAGES
 # =============================================================================
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN chmod -R a+r /etc/apt/trusted.gpg.d/ && \
+    apt-get update && apt-get install -y --no-install-recommends \
     # Core utilities
     bash \
     coreutils \
