@@ -31,13 +31,16 @@ RUN groupadd --gid $USER_GID $USERNAME \
 # SYSTEM PACKAGES
 # =============================================================================
 
-# apt by default drops to the '_apt' user for sandboxed operations (gpg signature
-# verification via apt-key).  On CentOS 7 hosts, SELinux enforcing mode blocks _apt
-# from reading /etc/apt/trusted.gpg.d/*.gpg regardless of Unix permissions, causing
-# "NO_PUBKEY" failures that cannot be fixed with chmod alone.
-# Fix: tell apt to stay as root for sandboxed operations — correct for Docker builds
-# where the container is already isolated.
-RUN echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/01-sandbox-root && \
+# On some Docker hosts (e.g. CentOS 7), apt-key cannot read the GPG keyring files
+# in /etc/apt/trusted.gpg.d/ because it spawns a sandboxed subprocess (_apt user)
+# that is denied access by the host's security/storage layer.  Neither chmod, cp,
+# nor APT::Sandbox::User fixes this — apt-key itself is the problem.
+# Fix: switch to the modern signed-by mechanism.  With [signed-by=...] in the
+# sources list, apt verifies signatures inline using gpgv (as root, no subprocess)
+# instead of delegating to apt-key.  Works on all Docker hosts regardless of
+# storage driver, SELinux policy, or kernel version.
+RUN sed -i 's|^deb |deb [signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg] |' /etc/apt/sources.list && \
+    rm -f /etc/apt/trusted.gpg.d/*.gpg && \
     apt-get update && apt-get install -y --no-install-recommends \
     # Core utilities
     bash \
