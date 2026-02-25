@@ -187,7 +187,7 @@ RUN mkdir -p /home/$USERNAME/Software \
 # ANNOVAR requires registration - copy from local installation
 # =============================================================================
 
-COPY --chown=$USERNAME:$USERNAME annovar/ /home/$USERNAME/Software/annovar/
+COPY --chown=1000:1000 annovar/ /home/$USERNAME/Software/annovar/
 RUN chmod +x /home/$USERNAME/Software/annovar/*.pl
 
 # =============================================================================
@@ -196,7 +196,7 @@ RUN chmod +x /home/$USERNAME/Software/annovar/*.pl
 # Mount path: /home/user/Databases/snpEff
 # =============================================================================
 
-COPY --chown=$USERNAME:$USERNAME snpEff/ /home/$USERNAME/Software/snpEff/
+COPY --chown=1000:1000 snpEff/ /home/$USERNAME/Software/snpEff/
 
 RUN chmod +x /home/$USERNAME/Software/snpEff/scripts/*.pl \
              /home/$USERNAME/Software/snpEff/scripts/*.sh 2>/dev/null || true && \
@@ -224,7 +224,7 @@ ENV IGV_JAR=/home/$USERNAME/Software/IGV/IGV_2.3.81/igv.jar
 # VEP GRCh38 cache (28GB+) should be mounted at runtime: /home/user/Databases/vep
 # =============================================================================
 
-COPY --chown=$USERNAME:$USERNAME ensembl-vep/ /home/$USERNAME/Software/ensembl-vep/
+COPY --chown=1000:1000 ensembl-vep/ /home/$USERNAME/Software/ensembl-vep/
 
 RUN mkdir -p /home/$USERNAME/Databases/vep && \
     chmod +x /home/$USERNAME/Software/ensembl-vep/vep && \
@@ -235,11 +235,11 @@ RUN mkdir -p /home/$USERNAME/Databases/vep && \
 # PIPELINE SCRIPTS (HG38 versions)
 # =============================================================================
 
-COPY --chown=$USERNAME:$USERNAME processVCF-hg38.sh /home/$USERNAME/Scripts/
-COPY --chown=$USERNAME:$USERNAME mergeVCFannotation-optimized-hg38.sh /home/$USERNAME/Scripts/
-COPY --chown=$USERNAME:$USERNAME make_IGV_snapshots.py /home/$USERNAME/Scripts/
-COPY --chown=$USERNAME:$USERNAME excel_to_html_report.py /home/$USERNAME/Scripts/
-COPY --chown=$USERNAME:$USERNAME check_docker_deps.sh /home/$USERNAME/Scripts/
+COPY --chown=1000:1000 processVCF-hg38.sh /home/$USERNAME/Scripts/
+COPY --chown=1000:1000 mergeVCFannotation-optimized-hg38.sh /home/$USERNAME/Scripts/
+COPY --chown=1000:1000 make_IGV_snapshots.py /home/$USERNAME/Scripts/
+COPY --chown=1000:1000 excel_to_html_report.py /home/$USERNAME/Scripts/
+COPY --chown=1000:1000 check_docker_deps.sh /home/$USERNAME/Scripts/
 
 RUN chmod +x /home/$USERNAME/Scripts/*.sh /home/$USERNAME/Scripts/*.py
 
