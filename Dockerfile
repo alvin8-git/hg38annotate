@@ -47,18 +47,33 @@ RUN groupadd --gid $USER_GID $USERNAME \
 #      script installed by ca-certificates-java; fires once per JDK alternative
 #      registered, so up to 3 times during this install)
 #   2. ca-certificates-java postinst
-#   3. openjdk-{8,11} postinst (may run java for a sanity check)
-# Strategy: divert jks-keystore to a no-op stub *before* unpacking packages so
-# the trigger fires are silent; stub ca-certificates-java postinst afterwards;
-# use || true on the install so dpkg failures don't abort the layer.
+#   3. openjdk-{8,11} postinst calls java via its installed absolute path
+#      (/usr/lib/jvm/java-{8,11}-openjdk-amd64/{jre/,}bin/java) for sanity checks.
+# Strategy: before unpacking any packages, divert jks-keystore AND the JVM
+# binaries to no-op stubs so every java invocation during postinst is silent.
+# Restore the real JVM binaries after installation.  Stub ca-certificates-java
+# postinst for belt-and-suspenders.  Use || true throughout so dpkg failures
+# in unrelated packages (sysstat ucfr) don't abort the build layer.
 RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
     rm -f /etc/apt/apt.conf.d/docker-clean && \
-    mkdir -p /etc/ca-certificates/update.d && \
+    mkdir -p /etc/ca-certificates/update.d \
+             /usr/lib/jvm/java-8-openjdk-amd64/jre/bin \
+             /usr/lib/jvm/java-11-openjdk-amd64/bin && \
     dpkg-divert --add --rename \
         --divert /etc/ca-certificates/update.d/jks-keystore.real \
         /etc/ca-certificates/update.d/jks-keystore && \
+    dpkg-divert --add --rename \
+        --divert /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java.real \
+        /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java && \
+    dpkg-divert --add --rename \
+        --divert /usr/lib/jvm/java-11-openjdk-amd64/bin/java.real \
+        /usr/lib/jvm/java-11-openjdk-amd64/bin/java && \
     printf '#!/bin/sh\nexit 0\n' > /etc/ca-certificates/update.d/jks-keystore && \
-    chmod +x /etc/ca-certificates/update.d/jks-keystore && \
+    printf '#!/bin/sh\nexit 0\n' > /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java && \
+    printf '#!/bin/sh\nexit 0\n' > /usr/lib/jvm/java-11-openjdk-amd64/bin/java && \
+    chmod +x /etc/ca-certificates/update.d/jks-keystore \
+             /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java \
+             /usr/lib/jvm/java-11-openjdk-amd64/bin/java && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
     # Core utilities
@@ -108,26 +123,27 @@ RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
     libwww-perl \
     libjson-perl \
     libarchive-zip-perl \
+    libexcel-writer-xlsx-perl \
     # Rename utility
     rename \
     || true && \
-    # Stub ca-certificates-java postinst (belt-and-suspenders alongside the
-    # jks-keystore divert above — the postinst also tries to invoke java).
+    # Restore the real JVM binaries now that all postinst scripts have run.
+    # dpkg-divert --remove --rename renames java.real back to java, overwriting
+    # our stub with the genuine JVM binary.
+    dpkg-divert --remove --rename /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java || true && \
+    dpkg-divert --remove --rename /usr/lib/jvm/java-11-openjdk-amd64/bin/java || true && \
+    # Stub ca-certificates-java postinst (belt-and-suspenders: the postinst also
+    # invokes java to update the keystore; keep it stubbed since the Java keystore
+    # is not required at runtime for this pipeline).
     printf '#!/bin/sh\nexit 0\n' > /var/lib/dpkg/info/ca-certificates-java.postinst && \
-    # sysstat postinst uses ucf to manage /etc/default/sysstat.  On some Docker
-    # hosts the ucf hashfile is left inconsistent after a partial install, causing
-    # "do not have write privilege to the state data".  Reset it so dpkg
-    # --configure can complete.  sysstat/parallel binaries are installed
+    # sysstat postinst uses ucf/ucfr to manage /etc/default/sysstat.  Both the
+    # hashfile and registry may be left inconsistent after a partial install,
+    # causing "do not have write privilege" errors on retry.  Wipe all ucf state
+    # so dpkg --configure starts fresh.  sysstat/parallel binaries are on disk
     # (dpkg unpacks before postinst) and functional even if not fully configured.
-    rm -f /var/lib/ucf/hashfile && \
+    rm -rf /var/lib/ucf/ && \
     dpkg --configure --pending || true && \
     rm -rf /var/lib/apt/lists/*
-
-# =============================================================================
-# PERL MODULES
-# =============================================================================
-
-RUN cpanm --notest Excel::Writer::XLSX
 
 # =============================================================================
 # PYTHON PACKAGES (TransVar, openpyxl for HTML reports)
