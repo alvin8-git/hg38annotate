@@ -23,9 +23,25 @@ SnapShots/
 *.vcf.gz
 *.vcf.gz.tbi
 
-# Exception: Allow TestData files
+# Exception: Allow TestData source files, but not generated output
 !TestData/
 !TestData/**
+TestData/output/
+TestData/alvin/
+TestData/**/*.log
+TestData/**/*.sort.gz
+TestData/**/*.sort.gz.tbi
+TestData/**/Merge.vcf
+TestData/**/Merge.*
+TestData/**/annotation/
+TestData/**/transvar/
+TestData/**/snpEff_genes.txt
+TestData/**/snpEff_summary.html
+TestData/**/VCFlist.txt
+
+# Miscellaneous local files
+Software.tar.gz
+gene_annotator.py
 
 # Python
 __pycache__/
