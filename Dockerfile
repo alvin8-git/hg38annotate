@@ -39,12 +39,26 @@ RUN groupadd --gid $USER_GID $USERNAME \
 # are still fetched from Ubuntu's official archive — only the GPG signature
 # check is skipped during this build step.
 #
-# On Docker build hosts with restrictive seccomp profiles, pthread_create is
-# blocked so the JVM cannot start at all (not even the initial VM thread).
-# The ca-certificates-java post-install hook runs java to update the keystore;
-# we let apt-get proceed with || true, then stub that postinst and reconfigure.
+# On CentOS 7 Docker hosts (kernel 3.10.x) the seccomp profile blocks the clone
+# syscall flags that the JVM requires, so pthread_create fails with EPERM and
+# the JVM cannot start at all — not even the initial VM thread.  Three separate
+# mechanisms try to invoke java during package installation:
+#   1. /etc/ca-certificates/update.d/jks-keystore  (a ca-certificates trigger
+#      script installed by ca-certificates-java; fires once per JDK alternative
+#      registered, so up to 3 times during this install)
+#   2. ca-certificates-java postinst
+#   3. openjdk-{8,11} postinst (may run java for a sanity check)
+# Strategy: divert jks-keystore to a no-op stub *before* unpacking packages so
+# the trigger fires are silent; stub ca-certificates-java postinst afterwards;
+# use || true on the install so dpkg failures don't abort the layer.
 RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
     rm -f /etc/apt/apt.conf.d/docker-clean && \
+    mkdir -p /etc/ca-certificates/update.d && \
+    dpkg-divert --add --rename \
+        --divert /etc/ca-certificates/update.d/jks-keystore.real \
+        /etc/ca-certificates/update.d/jks-keystore && \
+    printf '#!/bin/sh\nexit 0\n' > /etc/ca-certificates/update.d/jks-keystore && \
+    chmod +x /etc/ca-certificates/update.d/jks-keystore && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
     # Core utilities
@@ -97,14 +111,16 @@ RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
     # Rename utility
     rename \
     || true && \
-    # ca-certificates-java postinst invokes the JVM to update the Java keystore.
-    # On Docker build hosts with restrictive seccomp profiles, pthread_create is
-    # blocked so the JVM cannot even create its initial VM thread (EPERM), and
-    # the postinst — plus every package dpkg processes after it — fails.
-    # dpkg unpacks all files before running postinst, so the JDK binaries are
-    # already on disk.  Replace the broken postinst with a no-op and reconfigure.
+    # Stub ca-certificates-java postinst (belt-and-suspenders alongside the
+    # jks-keystore divert above — the postinst also tries to invoke java).
     printf '#!/bin/sh\nexit 0\n' > /var/lib/dpkg/info/ca-certificates-java.postinst && \
-    dpkg --configure --pending && \
+    # sysstat postinst uses ucf to manage /etc/default/sysstat.  On some Docker
+    # hosts the ucf hashfile is left inconsistent after a partial install, causing
+    # "do not have write privilege to the state data".  Reset it so dpkg
+    # --configure can complete.  sysstat/parallel binaries are installed
+    # (dpkg unpacks before postinst) and functional even if not fully configured.
+    rm -f /var/lib/ucf/hashfile && \
+    dpkg --configure --pending || true && \
     rm -rf /var/lib/apt/lists/*
 
 # =============================================================================
