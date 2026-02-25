@@ -2,15 +2,19 @@
 
 ## Unreleased (main)
 
-### 2026-02 — IGV 2.19.7 upgrade; offline genome loading; remove Java 8
+### 2026-02 — IGV 2.19.7 upgrade; offline genome loading; Java 21; remove Java 8
 
 **`Dockerfile`**
 
 - Upgraded IGV from 2.3.81 (2016) to 2.19.7 (October 2025). IGV 2.19.7
-  requires Java 11, which is already installed as `openjdk-11-jre-headless`.
+  requires Java 21 (`openjdk-21-jre-headless`), replacing Java 11
+  (`openjdk-11-jre-headless`). Java 21 is backward-compatible with snpEff jars.
 - Removed `openjdk-8-jre-headless` — no longer needed.
 - Moved IGV download layer to after the VEP INSTALL.pl layer so that future
   IGV-only upgrades do not bust the expensive VEP cache.
+- `ENV IGV_JAR` now points to `IGV_2.19.7/igv.sh` (the launcher script);
+  IGV 2.19.7 no longer ships `igv.jar` — it uses `igv.sh` + `lib/` with
+  modular jars and `--module-path` (Java Platform Module System).
 
 **`processVCF-hg38.sh`**
 
@@ -19,21 +23,26 @@
   genome name prevents IGV from querying Broad's online genome server at
   startup — the main source of per-sample delay. No GTF or cytoband file is
   needed; `hg38.fa` + `hg38.fa.fai` alone suffice for read pile-up snapshots.
-- Removed `-java "$java8_path"` from the IGV call; IGV 2.19.7 uses the system
-  `java` (Java 11).
-- Updated `igv_jar` default path to `IGV_2.19.7/igv.jar`.
+- Removed `-java "$java8_path"` from the IGV call; IGV 2.19.7 uses `igv.sh`
+  which locates and invokes Java 21 internally.
+- Updated `igv_jar` default path to `IGV_2.19.7/igv.sh`.
 - Removed `java8_path` variable and the Java 8 availability check.
 
 **`make_IGV_snapshots.py`**
 
-- Default `java_path` changed from the Java 8 absolute path to `java`.
-- Default `igv_jar_bin` updated to `bin/IGV_2.19.7/igv.jar`.
+- `run_IGV_script()` now calls `xvfb-run igv.sh -b script` instead of
+  `xvfb-run java -Xmx{mem}m -jar igv.jar -b script`. `igv.sh` handles
+  Java location and memory (defaults to `-Xmx8g`). Parameters `java_path`
+  and `mem_mb` are retained for backward compatibility but are unused.
+- Default `igv_jar_bin` updated to `bin/IGV_2.19.7/igv.sh`.
 
 **`check_docker_deps.sh`**
 
-- Replaced the Java 8 FAIL check with a Java 11+ check (FAIL if not present).
-- Updated `IGV_JAR` default to `IGV_2.19.7/igv.jar`.
-- Updated IGV functional test to use `java` (not `$JAVA8`).
+- Replaced the Java 8/11 FAIL check with a Java 21 check (WARN if 11/17,
+  FAIL if absent).
+- Updated `IGV_JAR` default to `IGV_2.19.7/igv.sh`.
+- Updated IGV functional test: checks that `igv.sh` is executable rather
+  than running `java -jar` (IGV requires a display for any live invocation).
 
 ---
 

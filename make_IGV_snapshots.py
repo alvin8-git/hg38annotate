@@ -181,9 +181,13 @@ def write_IGV_script(input_files, region_file, batchscript_file, snapshot_dir,
     append_string("exit", batchscript_file)
 
 
-def run_IGV_script(igv_script, igv_jar, mem_mb, java_path="java"):
-    """Run IGV batch script using xvfb-run"""
-    igv_command = f"xvfb-run --auto-servernum --server-num=1 {java_path} -Xmx{mem_mb}m -jar {igv_jar} -b {igv_script}"
+def run_IGV_script(igv_script, igv_jar, mem_mb=None, java_path=None):
+    """Run IGV batch script using xvfb-run.
+
+    igv_jar may be igv.sh (IGV 2.19.7+) or igv.jar (legacy).
+    mem_mb and java_path are unused with igv.sh (memory is set in igv.sh).
+    """
+    igv_command = f"xvfb-run --auto-servernum --server-num=1 {igv_jar} -b {igv_script}"
 
     print(f'\nIGV command:\n{igv_command}\n')
 
@@ -201,7 +205,7 @@ def run_IGV_script(igv_script, igv_jar, mem_mb, java_path="java"):
 
 def main(input_files, region_file='regions.bed', genome='hg38',
          image_height='500', outdir='IGV_Snapshots',
-         igv_jar_bin="bin/IGV_2.19.7/igv.jar", igv_mem="4000",
+         igv_jar_bin="bin/IGV_2.19.7/igv.sh", igv_mem="4000",
          no_snap=False, suffix=None, nf4_mode=False, onlysnap=False,
          group_by_strand=False, java_path="java"):
     """Main control function"""
@@ -279,8 +283,8 @@ Examples:
                         help="Track height in pixels (default: 500)")
     parser.add_argument("-o", dest='outdir', default='IGV_Snapshots',
                         help="Output directory (default: IGV_Snapshots)")
-    parser.add_argument("-bin", dest='igv_jar_bin', default="bin/IGV_2.3.81/igv.jar",
-                        help="Path to IGV jar file")
+    parser.add_argument("-bin", dest='igv_jar_bin', default="bin/IGV_2.19.7/igv.sh",
+                        help="Path to IGV launcher (igv.sh for 2.19.7+, igv.jar for legacy)")
     parser.add_argument("-mem", dest='igv_mem', default="4000",
                         help="Memory for IGV in MB (default: 4000)")
     parser.add_argument("-nosnap", dest='no_snap', action='store_true',

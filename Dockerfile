@@ -47,8 +47,8 @@ RUN groupadd --gid $USER_GID $USERNAME \
 #      script installed by ca-certificates-java; fires once per JDK alternative
 #      registered during this install)
 #   2. ca-certificates-java postinst
-#   3. openjdk-11 postinst calls java via its installed absolute path
-#      (/usr/lib/jvm/java-11-openjdk-amd64/bin/java) for sanity checks.
+#   3. openjdk-21 postinst calls java via its installed absolute path
+#      (/usr/lib/jvm/java-21-openjdk-amd64/bin/java) for sanity checks.
 # Strategy: before unpacking any packages, divert jks-keystore AND the JVM
 # binary to no-op stubs so every java invocation during postinst is silent.
 # Restore the real JVM binary after installation.  Stub ca-certificates-java
@@ -57,17 +57,17 @@ RUN groupadd --gid $USER_GID $USERNAME \
 RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
     rm -f /etc/apt/apt.conf.d/docker-clean && \
     mkdir -p /etc/ca-certificates/update.d \
-             /usr/lib/jvm/java-11-openjdk-amd64/bin && \
+             /usr/lib/jvm/java-21-openjdk-amd64/bin && \
     dpkg-divert --add --rename \
         --divert /etc/ca-certificates/update.d/jks-keystore.real \
         /etc/ca-certificates/update.d/jks-keystore && \
     dpkg-divert --add --rename \
-        --divert /usr/lib/jvm/java-11-openjdk-amd64/bin/java.real \
-        /usr/lib/jvm/java-11-openjdk-amd64/bin/java && \
+        --divert /usr/lib/jvm/java-21-openjdk-amd64/bin/java.real \
+        /usr/lib/jvm/java-21-openjdk-amd64/bin/java && \
     printf '#!/bin/sh\nexit 0\n' > /etc/ca-certificates/update.d/jks-keystore && \
-    printf '#!/bin/sh\nexit 0\n' > /usr/lib/jvm/java-11-openjdk-amd64/bin/java && \
+    printf '#!/bin/sh\nexit 0\n' > /usr/lib/jvm/java-21-openjdk-amd64/bin/java && \
     chmod +x /etc/ca-certificates/update.d/jks-keystore \
-             /usr/lib/jvm/java-11-openjdk-amd64/bin/java && \
+             /usr/lib/jvm/java-21-openjdk-amd64/bin/java && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
     # Core utilities
@@ -88,7 +88,7 @@ RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
     perl \
     python3 \
     python3-pip \
-    openjdk-11-jre-headless \
+    openjdk-21-jre-headless \
     # IGV dependencies (headless display)
     xvfb \
     libxrender1 \
@@ -124,8 +124,8 @@ RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
     # Restore the real JVM binary now that all postinst scripts have run.
     # dpkg-divert --remove --rename renames java.real back to java, but refuses
     # to overwrite an existing file.  Remove the stub first so the rename works.
-    rm -f /usr/lib/jvm/java-11-openjdk-amd64/bin/java && \
-    dpkg-divert --remove --rename /usr/lib/jvm/java-11-openjdk-amd64/bin/java || true && \
+    rm -f /usr/lib/jvm/java-21-openjdk-amd64/bin/java && \
+    dpkg-divert --remove --rename /usr/lib/jvm/java-21-openjdk-amd64/bin/java || true && \
     # Stub ca-certificates-java postinst (belt-and-suspenders: the postinst also
     # invokes java to update the keystore; keep it stubbed since the Java keystore
     # is not required at runtime for this pipeline).
@@ -189,8 +189,9 @@ RUN mkdir -p /home/$USERNAME/Databases/hg38annotate/vep && \
 
 # =============================================================================
 # IGV (Integrative Genomics Viewer) for snapshots
-# IGV 2.19.7 requires Java 11 (already installed above).
-# Uses a local genome FASTA at runtime — no online genome server queries.
+# IGV 2.19.7 requires Java 21 (openjdk-21-jre-headless, installed above).
+# Uses igv.sh launcher with --module-path; batch mode (-b) and local genome
+# FASTA are fully supported — no online genome server queries at runtime.
 # The reference genome is loaded from $DB_BASE/GRCh38/hg38.fa.
 # =============================================================================
 
@@ -199,9 +200,12 @@ RUN mkdir -p /home/$USERNAME/Software/IGV && \
     wget -q https://data.broadinstitute.org/igv/projects/downloads/2.19/IGV_2.19.7.zip && \
     unzip -q IGV_2.19.7.zip && \
     rm IGV_2.19.7.zip && \
+    chmod +x /home/$USERNAME/Software/IGV/IGV_2.19.7/igv.sh && \
     chown -R $USERNAME:$USERNAME /home/$USERNAME/Software/IGV
 
-ENV IGV_JAR=/home/$USERNAME/Software/IGV/IGV_2.19.7/igv.jar
+# IGV_JAR is kept as the env var name for backward compatibility;
+# it now points to igv.sh (the 2.19.7 launcher script).
+ENV IGV_JAR=/home/$USERNAME/Software/IGV/IGV_2.19.7/igv.sh
 
 # =============================================================================
 # PIPELINE SCRIPTS (HG38 versions)

@@ -230,7 +230,7 @@ generate_igv_snapshots() {
 
     local output_dir="../output"
     local igv_script="$SCRIPT_DIR/make_IGV_snapshots.py"
-    local igv_jar="${IGV_JAR:-$HOME/Software/IGV/IGV_2.19.7/igv.jar}"
+    local igv_jar="${IGV_JAR:-$HOME/Software/IGV/IGV_2.19.7/igv.sh}"
     local hg38_fasta="${HG38_FASTA:-$DB_BASE/GRCh38/hg38.fa}"
     local bam_dir="../bam"
 
@@ -560,11 +560,11 @@ main() {
                 fi
                 echo ""
                 echo "IGV Snapshots:"
-                local igv_jar="${IGV_JAR:-$HOME/Software/IGV/IGV_2.19.7/igv.jar}"
+                local igv_jar="${IGV_JAR:-$HOME/Software/IGV/IGV_2.19.7/igv.sh}"
                 if [ -f "$igv_jar" ]; then
-                    echo "  IGV JAR: OK ($igv_jar)"
+                    echo "  IGV launcher: OK ($igv_jar)"
                 else
-                    echo "  IGV JAR: MISSING ($igv_jar)"
+                    echo "  IGV launcher: MISSING ($igv_jar)"
                 fi
                 if java -version 2>&1 | grep -q "11\|17\|21"; then
                     echo "  Java 11+: OK ($(java -version 2>&1 | head -1))"

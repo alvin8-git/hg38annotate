@@ -122,12 +122,15 @@ echo "   ----------------------------------------"
 check_command perl "Perl interpreter (VEP, snpEff)"
 check_command python3 "Python 3 (TransVar, annovar-fast, cancervar-fast)"
 
-# Test Java 11+ (required for snpEff and IGV 2.19+)
-if java -version 2>&1 | grep -q "11\|17\|21"; then
-    echo -e "  ${GREEN}[OK]${NC} java - OpenJDK 11+ (for snpEff and IGV)"
+# Test Java 21 (required for IGV 2.19.7; snpEff works with any Java 11+)
+if java -version 2>&1 | grep -q "21"; then
+    echo -e "  ${GREEN}[OK]${NC} java - OpenJDK 21 (for snpEff and IGV 2.19.7)"
     PASS_COUNT=$((PASS_COUNT + 1))
+elif java -version 2>&1 | grep -q "11\|17"; then
+    echo -e "  ${YELLOW}[WARN]${NC} java - OpenJDK 11/17 found; IGV 2.19.7 requires Java 21"
+    WARN_COUNT=$((WARN_COUNT + 1))
 else
-    echo -e "  ${RED}[FAIL]${NC} java - OpenJDK 11+ required (apt install openjdk-11-jre-headless)"
+    echo -e "  ${RED}[FAIL]${NC} java - OpenJDK 21 required (apt install openjdk-21-jre-headless)"
     FAIL_COUNT=$((FAIL_COUNT + 1))
 fi
 
@@ -189,13 +192,13 @@ check_file "$HOME/Software/snpEff/snpEff.jar" "snpEff JAR"
 check_file "$HOME/Software/snpEff/SnpSift.jar" "SnpSift JAR"
 check_file "$HOME/Software/ensembl-vep/vep" "VEP executable"
 
-# Check IGV
-IGV_JAR="${IGV_JAR:-$HOME/Software/IGV/IGV_2.19.7/igv.jar}"
+# Check IGV (IGV_JAR env var points to igv.sh for IGV 2.19.7+)
+IGV_JAR="${IGV_JAR:-$HOME/Software/IGV/IGV_2.19.7/igv.sh}"
 if [ -f "$IGV_JAR" ]; then
     echo -e "  ${GREEN}[OK]${NC} $IGV_JAR"
     PASS_COUNT=$((PASS_COUNT + 1))
 else
-    echo -e "  ${RED}[FAIL]${NC} IGV JAR - NOT FOUND at $IGV_JAR"
+    echo -e "  ${RED}[FAIL]${NC} IGV launcher - NOT FOUND at $IGV_JAR"
     FAIL_COUNT=$((FAIL_COUNT + 1))
 fi
 
@@ -318,19 +321,16 @@ else
     FAIL_COUNT=$((FAIL_COUNT + 1))
 fi
 
-# Test IGV with Java 11
-if java -jar "$IGV_JAR" --help 2>&1 | grep -q -i "igv\|usage\|version"; then
-    echo -e "  ${GREEN}[OK]${NC} IGV - functional test passed"
+# Test IGV launcher (igv.sh; requires display — just confirm it exists and is executable)
+if [ -x "$IGV_JAR" ]; then
+    echo -e "  ${GREEN}[OK]${NC} IGV - launcher exists and is executable ($IGV_JAR)"
     PASS_COUNT=$((PASS_COUNT + 1))
+elif [ -f "$IGV_JAR" ]; then
+    echo -e "  ${YELLOW}[WARN]${NC} IGV - launcher exists but not executable ($IGV_JAR)"
+    WARN_COUNT=$((WARN_COUNT + 1))
 else
-    # IGV batch mode does not require --help; confirm the JAR starts
-    if [ -f "$IGV_JAR" ]; then
-        echo -e "  ${YELLOW}[WARN]${NC} IGV - JAR exists (batch mode not tested without display)"
-        WARN_COUNT=$((WARN_COUNT + 1))
-    else
-        echo -e "  ${RED}[FAIL]${NC} IGV - JAR not found at $IGV_JAR"
-        FAIL_COUNT=$((FAIL_COUNT + 1))
-    fi
+    echo -e "  ${RED}[FAIL]${NC} IGV - launcher not found at $IGV_JAR"
+    FAIL_COUNT=$((FAIL_COUNT + 1))
 fi
 
 # -----------------------------------------------------------------------------
