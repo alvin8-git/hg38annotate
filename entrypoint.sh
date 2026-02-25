@@ -19,6 +19,26 @@ set -e
 
 TARGET_USER="user"
 
+# =============================================================================
+# Generate TransVar config based on DB_BASE (may be overridden by -e DB_BASE=…)
+# This must run before the privilege drop so we can write to /home/user.
+# =============================================================================
+_db="${DB_BASE:-/home/user/Databases/hg38annotate}"
+_tvar="$_db/transvar"
+cat > /home/$TARGET_USER/.transvar.cfg << EOF
+[DEFAULT]
+refversion = hg38
+
+[hg38]
+reference = $_db/GRCh38/hg38.fa
+refseq = $_tvar/hg38.refseq.gff.gz.transvardb
+ccds = $_tvar/hg38.ccds.txt.transvardb
+ensembl = $_tvar/hg38.ensembl.gtf.gz.transvardb
+gencode = $_tvar/hg38.gencode.gtf.gz.transvardb
+ucsc = $_tvar/hg38.ucsc.txt.gz.transvardb
+EOF
+chown $TARGET_USER:$TARGET_USER /home/$TARGET_USER/.transvar.cfg 2>/dev/null || true
+
 if [ "$(id -u)" = "0" ]; then
     # Detect rootless Docker: in rootless mode, container uid 0 maps to the
     # host user's uid (non-zero). Check the first entry of uid_map.

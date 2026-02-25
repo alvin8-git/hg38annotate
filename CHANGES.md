@@ -2,6 +2,27 @@
 
 ## Unreleased (main)
 
+### 2026-02 — TransVar databases moved out of Docker image
+
+**`Dockerfile`**
+
+- Removed `transvar config --download_anno --refversion hg38` build step (~236 MB, ~2 minutes).
+  TransVar annotation databases (refseq, ccds, ensembl, gencode, ucsc) are now distributed
+  as part of `Databases.tar.gz` and mounted at runtime under `$DB_BASE/transvar/`.
+- Build time reduced by ~2 minutes; image size reduced by ~230 MB.
+
+**`entrypoint.sh`**
+
+- Added TransVar config generation at container startup. `~/.transvar.cfg` is written from
+  the current `$DB_BASE` value before privilege drop, so the config is correct whether
+  `DB_BASE` is the default or overridden at runtime with `-e DB_BASE=…`.
+
+**`check_docker_deps.sh`**
+
+- Added `$DB_BASE/transvar` to section 10 database directory checks.
+
+---
+
 ### 2026-02 — VEP 115 cache upgrade
 
 **`mergeVCFannotation-optimized-hg38.sh`**

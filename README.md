@@ -45,6 +45,7 @@ A Docker-based VCF annotation pipeline for the HG38/GRCh38 reference genome. Des
 | GRCh38 reference FASTA | ~3 GB | `$DB_BASE/GRCh38/hg38.fa` |
 | VEP GRCh38 RefSeq cache | ~28 GB | `$DB_BASE/vep/` |
 | snpEff GRCh38.p13.RefSeq | ~1 GB | `$DB_BASE/snpEff/` |
+| TransVar hg38 databases | ~236 MB | `$DB_BASE/transvar/` |
 | SG10K (tabix-indexed) | ~2 MB | `$DB_BASE/SG10k/SG10K.genes.txt.gz` |
 | GenomeAsia (tabix-indexed) | ~600 MB | `$DB_BASE/genomeAsia/genomeAsia.All.hg38.txt.gz` |
 | humandb-tbi (annovar-fast) | ~30 GB | Mounted separately — see [Configuration](#databases) |
@@ -64,7 +65,7 @@ cd hg38annotate
 
 ### 2. Download and extract annotation tools
 
-ANNOVAR, snpEff, and VEP are too large for git and are distributed as a release archive.
+snpEff and VEP are too large for git and are distributed as a release archive.
 
 ```bash
 # Download from the GitHub releases page
@@ -75,7 +76,6 @@ tar -xzf Software.tar.gz
 This extracts the following directories into the repo root, which are required for `docker build`:
 
 ```
-annovar/        ANNOVAR Perl scripts
 snpEff/         snpEff jar + scripts
 ensembl-vep/    VEP software (databases mounted at runtime)
 ```
@@ -86,14 +86,26 @@ ensembl-vep/    VEP software (databases mounted at runtime)
 docker build -t hg38annotate:latest .
 ```
 
-- Build time: ~10–20 minutes (VEP module installation dominates)
-- Image size: ~2.5 GB (databases are mounted at runtime, not baked in)
+- Build time: ~10–15 minutes (VEP module installation dominates)
+- Image size: ~2.1 GB (databases are mounted at runtime, not baked in)
 
 > **Note for CentOS 7 hosts:** The build uses `dpkg-divert` stubs to work around `pthread_create EPERM` from the seccomp profile on kernel 3.10.x. No special flags are needed; the Dockerfile handles this automatically.
 
 ### 4. Set up databases
 
-Organise all annotation databases under a single root directory (default: `~/Databases/hg38annotate`):
+Organise all annotation databases under a single root directory (default: `~/Databases/hg38annotate`).
+
+The smaller databases (TransVar, SG10K, GenomeAsia, snpEff) are distributed as a release archive:
+
+```bash
+# Download and extract into your Databases directory
+wget https://github.com/alvin8-git/hg38annotate/releases/latest/download/Databases.tar.gz
+tar -xzf Databases.tar.gz -C ~/Databases/hg38annotate
+```
+
+GRCh38, VEP cache, and humandb-tbi are too large for a release archive and must be obtained separately (see links in the table above).
+
+After setup, the directory should look like:
 
 ```
 ~/Databases/hg38annotate/
@@ -104,6 +116,12 @@ Organise all annotation databases under a single root directory (default: `~/Dat
 │   └── homo_sapiens_refseq/
 ├── snpEff/               # snpEff database
 │   └── GRCh38.p13.RefSeq/
+├── transvar/             # TransVar hg38 annotation databases (~236 MB)
+│   ├── hg38.refseq.gff.gz.transvardb
+│   ├── hg38.ccds.txt.transvardb
+│   ├── hg38.ensembl.gtf.gz.transvardb
+│   ├── hg38.gencode.gtf.gz.transvardb
+│   └── hg38.ucsc.txt.gz.transvardb  (+ index files)
 ├── SG10k/                # SG10K Singapore population (tabix-indexed)
 │   ├── SG10K.genes.txt.gz
 │   └── SG10K.genes.txt.gz.tbi
@@ -112,7 +130,7 @@ Organise all annotation databases under a single root directory (default: `~/Dat
     └── genomeAsia.All.hg38.txt.gz.tbi
 ```
 
-`humandb-tbi` (annovar-fast databases) is kept at its own location and mounted separately — see [Databases](#databases) below.
+`humandb-tbi` (annovar-fast databases, ~30 GB) is kept at its own location and mounted separately — see [Databases](#databases) below.
 
 ---
 
@@ -351,7 +369,7 @@ output/
 | cancervar-fast | — | Cancer Tier I–IV classification (replaces CancerVar) |
 | VEP | 105 (software) + 115 cache | Ensembl Variant Effect Predictor |
 | snpEff | 5.0e | Splice effect prediction + functional annotation |
-| TransVar | 2.5.10 | HGVS nomenclature |
+| TransVar | 2.5.10 | HGVS nomenclature (databases in `$DB_BASE/transvar/`) |
 | bcftools | 1.13 | VCF merge, filter, stats |
 | IGV | 2.3.81 | Screenshot generation (requires Java 8) |
 | Python | 3.10 | Report generation (openpyxl, cyvcf2, pysam, transvar) |

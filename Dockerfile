@@ -157,23 +157,10 @@ RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
 # where the seccomp profile blocks pthread_create for non-initial threads.
 RUN pip3 install --no-cache-dir --progress-bar off transvar openpyxl pysam cyvcf2
 
-# Configure TransVar with hg38 reference
-# Download annotation databases and create config pointing to mounted reference genome
-RUN transvar config --download_anno --refversion hg38 --skip_reference && \
-    TRANSVAR_DB=/usr/local/lib/python3.10/dist-packages/transvar/transvar.download && \
-    echo "[DEFAULT]" > /home/$USERNAME/.transvar.cfg && \
-    echo "refversion = hg38" >> /home/$USERNAME/.transvar.cfg && \
-    echo "" >> /home/$USERNAME/.transvar.cfg && \
-    echo "[hg38]" >> /home/$USERNAME/.transvar.cfg && \
-    echo "reference = /home/$USERNAME/Databases/hg38annotate/GRCh38/hg38.fa" >> /home/$USERNAME/.transvar.cfg && \
-    echo "refseq = $TRANSVAR_DB/hg38.refseq.gff.gz.transvardb" >> /home/$USERNAME/.transvar.cfg && \
-    echo "ccds = $TRANSVAR_DB/hg38.ccds.txt.transvardb" >> /home/$USERNAME/.transvar.cfg && \
-    echo "ensembl = $TRANSVAR_DB/hg38.ensembl.gtf.gz.transvardb" >> /home/$USERNAME/.transvar.cfg && \
-    echo "gencode = $TRANSVAR_DB/hg38.gencode.gtf.gz.transvardb" >> /home/$USERNAME/.transvar.cfg && \
-    echo "ucsc = $TRANSVAR_DB/hg38.ucsc.txt.gz.transvardb" >> /home/$USERNAME/.transvar.cfg && \
-    echo "aceview = $TRANSVAR_DB/hg38.aceview.gff.gz.transvardb" >> /home/$USERNAME/.transvar.cfg && \
-    echo "known_gene = $TRANSVAR_DB/hg38.knowngene.gz.transvardb" >> /home/$USERNAME/.transvar.cfg && \
-    chown $USERNAME:$USERNAME /home/$USERNAME/.transvar.cfg
+# TransVar configuration is generated at container startup by entrypoint.sh
+# based on the $DB_BASE environment variable so it is correct regardless of
+# the mount point the user provides.  The annotation databases themselves are
+# distributed separately and mounted at runtime under $DB_BASE/transvar/.
 
 # =============================================================================
 # SOFTWARE DIRECTORY SETUP

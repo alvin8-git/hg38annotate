@@ -253,6 +253,7 @@ HUMANDB="${HUMANDB:-$DB_BASE/humandb-tbi}"
 check_dir "$DB_BASE/GRCh38"        "GRCh38 reference genome"
 check_dir "$DB_BASE/vep"           "VEP GRCh38 cache"
 check_dir "$DB_BASE/snpEff"        "snpEff GRCh38 database"
+check_dir "$DB_BASE/transvar"      "TransVar annotation databases"
 check_dir "$DB_BASE/SG10k"         "SG10K Singapore population database"
 check_dir "$DB_BASE/genomeAsia"    "GenomeAsia 100K database"
 if [ -d "$HUMANDB" ]; then
