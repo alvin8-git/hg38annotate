@@ -33,6 +33,7 @@
 ##bcftools_viewCommand=view -i (%FILTER='PASS'||%FILTER='SB') -o iSeq-001-S26_S59.x.vcf iSeq-001-S26_S59.vcf; Date=Fri Feb 20 09:02:47 2026
 ##bcftools_viewCommand=view -i (%FILTER='PASS'||%FILTER='SB') -o iSeq-001-S26_S59.x.vcf iSeq-001-S26_S59.vcf; Date=Fri Feb 20 09:05:33 2026
 ##bcftools_viewCommand=view -i (%FILTER='PASS'||%FILTER='SB') -o iSeq-001-S26_S59.x.vcf iSeq-001-S26_S59.vcf; Date=Fri Feb 20 09:07:21 2026
+##bcftools_viewCommand=view -i (%FILTER='PASS'||%FILTER='SB') -o iSeq-001-S26_S59.x.vcf iSeq-001-S26_S59.vcf; Date=Wed Feb 25 07:27:54 2026
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	iSeq-001-S26_S59.bam
 chr19	33301462	.	G	GTCA	100	PASS	DP=17746	GT:GQ:AD:DP:VF:NL:SB	0/1:100:11755,5991:17746:0.338:20:-100
 chr19	33301825	.	G	GGCGGGT	100	PASS	DP=2633	GT:GQ:AD:DP:VF:NL:SB	0/1:100:2086,547:2633:0.208:20:-100

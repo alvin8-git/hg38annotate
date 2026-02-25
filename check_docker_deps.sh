@@ -119,8 +119,8 @@ echo ""
 echo "3. PROGRAMMING LANGUAGES"
 echo "   Required for annotation tools"
 echo "   ----------------------------------------"
-check_command perl "Perl interpreter (ANNOVAR, VEP)"
-check_command python3 "Python 3 (TransVar, CancerVar)"
+check_command perl "Perl interpreter (VEP, snpEff)"
+check_command python3 "Python 3 (TransVar, annovar-fast, cancervar-fast)"
 
 # Test Java 11 (default)
 if java -version 2>&1 | grep -q "11"; then
@@ -173,17 +173,35 @@ echo "   Required Python libraries"
 echo "   ----------------------------------------"
 check_python_module "openpyxl"
 check_python_module "transvar"
+check_python_module "cyvcf2"
+check_python_module "pysam"
 
 # -----------------------------------------------------------------------------
 echo ""
 echo "7. SOFTWARE INSTALLATIONS"
 echo "   Annotation software directories"
 echo "   ----------------------------------------"
-check_file "$HOME/Software/annovar/table_annovar.pl" "ANNOVAR main script"
-check_file "$HOME/Software/annovar/convert2annovar.pl" "ANNOVAR converter"
+
+# annovar-fast and cancervar-fast (mounted at runtime)
+ANNOVAR_FAST="${ANNOVAR_FAST:-/data/alvin/annovar/annovar-fast/annovar-fast.py}"
+CANCERVAR_FAST="${CANCERVAR_FAST:-/data/alvin/annovar/annovar-fast/cancervar-fast.py}"
+if [ -f "$ANNOVAR_FAST" ]; then
+    echo -e "  ${GREEN}[OK]${NC} annovar-fast: $ANNOVAR_FAST"
+    PASS_COUNT=$((PASS_COUNT + 1))
+else
+    echo -e "  ${YELLOW}[WARN]${NC} annovar-fast: $ANNOVAR_FAST - NOT FOUND (mount at runtime)"
+    WARN_COUNT=$((WARN_COUNT + 1))
+fi
+if [ -f "$CANCERVAR_FAST" ]; then
+    echo -e "  ${GREEN}[OK]${NC} cancervar-fast: $CANCERVAR_FAST"
+    PASS_COUNT=$((PASS_COUNT + 1))
+else
+    echo -e "  ${YELLOW}[WARN]${NC} cancervar-fast: $CANCERVAR_FAST - NOT FOUND (mount at runtime)"
+    WARN_COUNT=$((WARN_COUNT + 1))
+fi
+
 check_file "$HOME/Software/snpEff/snpEff.jar" "snpEff JAR"
 check_file "$HOME/Software/snpEff/SnpSift.jar" "SnpSift JAR"
-check_file "$HOME/Software/CancerVar/CancerVar.py" "CancerVar script"
 check_file "$HOME/Software/ensembl-vep/vep" "VEP executable"
 
 # Check IGV
@@ -227,15 +245,23 @@ fi
 
 # -----------------------------------------------------------------------------
 echo ""
-echo "10. DATABASE DIRECTORIES (HG38/GRCh38 - mount at runtime)"
+echo "10. DATABASE DIRECTORIES (mount at runtime)"
 echo "    These should be mounted when running container"
 echo "    ----------------------------------------"
-check_dir "$HOME/Databases/humandb" "ANNOVAR hg38 databases"
-check_dir "$HOME/Databases/GRCh38" "GRCh38 reference genome (hg38.fa)"
-check_dir "$HOME/Databases/vep" "VEP GRCh38 cache"
-check_dir "$HOME/Databases/snpEff" "snpEff GRCh38 database"
-check_dir "$HOME/Databases/SG10K.hg38.vcf" "SG10K HG38 database"
-check_dir "$HOME/Databases/iSeq" "iSeq reference VCFs (HG38)"
+DB_BASE="${DB_BASE:-$HOME/Databases/hg38annotate}"
+HUMANDB="${HUMANDB:-$DB_BASE/humandb-tbi}"
+check_dir "$DB_BASE/GRCh38"        "GRCh38 reference genome"
+check_dir "$DB_BASE/vep"           "VEP GRCh38 cache"
+check_dir "$DB_BASE/snpEff"        "snpEff GRCh38 database"
+check_dir "$DB_BASE/SG10k"         "SG10K Singapore population database"
+check_dir "$DB_BASE/genomeAsia"    "GenomeAsia 100K database"
+if [ -d "$HUMANDB" ]; then
+    echo -e "  ${GREEN}[OK]${NC} $HUMANDB"
+    PASS_COUNT=$((PASS_COUNT + 1))
+else
+    echo -e "  ${YELLOW}[WARN]${NC} $HUMANDB - NOT FOUND (set HUMANDB env var)"
+    WARN_COUNT=$((WARN_COUNT + 1))
+fi
 
 # -----------------------------------------------------------------------------
 echo ""
@@ -270,13 +296,22 @@ else
     FAIL_COUNT=$((FAIL_COUNT + 1))
 fi
 
-# Test ANNOVAR help
-if perl "$HOME/Software/annovar/table_annovar.pl" 2>&1 | grep -q -i "annovar"; then
-    echo -e "  ${GREEN}[OK]${NC} ANNOVAR - functional test passed"
+# Test annovar-fast
+if [ -f "$ANNOVAR_FAST" ] && python3 "$ANNOVAR_FAST" --help 2>&1 | grep -qi "annovar\|usage\|input"; then
+    echo -e "  ${GREEN}[OK]${NC} annovar-fast - functional test passed"
     PASS_COUNT=$((PASS_COUNT + 1))
 else
-    echo -e "  ${RED}[FAIL]${NC} ANNOVAR - functional test failed"
-    FAIL_COUNT=$((FAIL_COUNT + 1))
+    echo -e "  ${YELLOW}[WARN]${NC} annovar-fast - not mounted or functional test failed"
+    WARN_COUNT=$((WARN_COUNT + 1))
+fi
+
+# Test cancervar-fast
+if [ -f "$CANCERVAR_FAST" ] && python3 "$CANCERVAR_FAST" --help 2>&1 | grep -qi "cancer\|usage\|input"; then
+    echo -e "  ${GREEN}[OK]${NC} cancervar-fast - functional test passed"
+    PASS_COUNT=$((PASS_COUNT + 1))
+else
+    echo -e "  ${YELLOW}[WARN]${NC} cancervar-fast - not mounted or functional test failed"
+    WARN_COUNT=$((WARN_COUNT + 1))
 fi
 
 # Test VEP help
@@ -294,15 +329,6 @@ if transvar panno -i 'PIK3CA:p.E545K' --refversion hg38 2>&1 | grep -q -i "trans
     PASS_COUNT=$((PASS_COUNT + 1))
 else
     echo -e "  ${RED}[FAIL]${NC} transvar - functional test failed"
-    FAIL_COUNT=$((FAIL_COUNT + 1))
-fi
-
-# Test CancerVar
-if python3 "$HOME/Software/CancerVar/CancerVar.py" --help 2>&1 | grep -q -i "cancer\|usage"; then
-    echo -e "  ${GREEN}[OK]${NC} CancerVar - functional test passed"
-    PASS_COUNT=$((PASS_COUNT + 1))
-else
-    echo -e "  ${RED}[FAIL]${NC} CancerVar - functional test failed"
     FAIL_COUNT=$((FAIL_COUNT + 1))
 fi
 
@@ -336,12 +362,12 @@ if [ "$FAIL_COUNT" -eq 0 ]; then
     echo -e "  ${GREEN}All critical dependencies are installed!${NC}"
     echo ""
     if [ "$WARN_COUNT" -gt 0 ]; then
-        echo "  Note: Warnings are for databases that should be mounted at runtime."
-        echo "  Mount HG38 databases with:"
-        echo "    -v \$HOME/Databases/humandb:/home/user/Databases/humandb"
-        echo "    -v \$HOME/Databases/GRCh38:/home/user/Databases/GRCh38"
-        echo "    -v \$HOME/Databases/vep:/home/user/Databases/vep"
-        echo "    -v \$HOME/Databases/snpEff:/home/user/Databases/snpEff"
+        echo "  Note: Warnings are for tools/databases mounted at runtime."
+        echo "  Mount databases with:"
+        echo "    -v /path/to/Databases/hg38annotate:/home/user/Databases/hg38annotate:ro"
+        echo "    -e HUMANDB=/path/to/humandb-tbi"
+        echo "    -v /path/to/humandb-tbi:/path/to/humandb-tbi:ro"
+        echo "    -v /path/to/annovar-fast:/path/to/annovar-fast:ro"
     fi
     exit 0
 else

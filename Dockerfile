@@ -184,14 +184,6 @@ RUN mkdir -p /home/$USERNAME/Software \
              /home/$USERNAME/Scripts
 
 # =============================================================================
-# ANNOVAR (copy from local)
-# ANNOVAR requires registration - copy from local installation
-# =============================================================================
-
-COPY --chown=1000:1000 annovar/ /home/$USERNAME/Software/annovar/
-RUN chmod +x /home/$USERNAME/Software/annovar/*.pl
-
-# =============================================================================
 # snpEff (copy from local)
 # Note: snpEff GRCh38 database should be mounted at runtime
 # Mount path: /home/user/Databases/hg38annotate/snpEff/GRCh38.p13.RefSeq/
@@ -249,7 +241,7 @@ RUN chmod +x /home/$USERNAME/Scripts/*.sh /home/$USERNAME/Scripts/*.py
 # =============================================================================
 
 ENV HOME=/home/$USERNAME
-ENV PATH="/home/$USERNAME/Software/annovar:/home/$USERNAME/Software/snpEff:/home/$USERNAME/Software/ensembl-vep:/home/$USERNAME/Scripts:$PATH"
+ENV PATH="/home/$USERNAME/Software/snpEff:/home/$USERNAME/Software/ensembl-vep:/home/$USERNAME/Scripts:$PATH"
 ENV PERL5LIB="/home/$USERNAME/Software/ensembl-vep/modules"
 # Unified database directory — mount /data/alvin/Databases/hg38annotate here at runtime
 ENV DB_BASE=/home/$USERNAME/Databases/hg38annotate
