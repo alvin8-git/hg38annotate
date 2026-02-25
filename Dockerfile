@@ -230,7 +230,7 @@ COPY --chown=1000:1000 ensembl-vep/ /home/$USERNAME/Software/ensembl-vep/
 RUN mkdir -p /home/$USERNAME/Databases/vep && \
     chmod +x /home/$USERNAME/Software/ensembl-vep/vep && \
     cd /home/$USERNAME/Software/ensembl-vep && \
-    perl INSTALL.pl --AUTO a --NO_TEST --NO_UPDATE --DESTDIR /home/$USERNAME/Software/ensembl-vep
+    perl INSTALL.pl --AUTO a --NO_TEST --NO_UPDATE --NO_HTSLIB --DESTDIR /home/$USERNAME/Software/ensembl-vep
 
 # =============================================================================
 # PIPELINE SCRIPTS (HG38 versions)
