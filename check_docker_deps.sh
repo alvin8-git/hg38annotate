@@ -324,7 +324,7 @@ else
 fi
 
 # Test TransVar with hg38
-if transvar panno -i 'PIK3CA:p.E545K' --refversion hg38 2>&1 | grep -q -i "transvar\|PIK3CA\|error"; then
+if transvar panno -i 'PIK3CA:p.E545K' --refversion hg38 --refseq 2>&1 | grep -q -i "PIK3CA\|Missense\|error"; then
     echo -e "  ${GREEN}[OK]${NC} transvar - functional test passed (hg38)"
     PASS_COUNT=$((PASS_COUNT + 1))
 else
