@@ -2,6 +2,41 @@
 
 ## Unreleased (main)
 
+### 2026-02 — IGV 2.19.7 upgrade; offline genome loading; remove Java 8
+
+**`Dockerfile`**
+
+- Upgraded IGV from 2.3.81 (2016) to 2.19.7 (October 2025). IGV 2.19.7
+  requires Java 11, which is already installed as `openjdk-11-jre-headless`.
+- Removed `openjdk-8-jre-headless` — no longer needed.
+- Moved IGV download layer to after the VEP INSTALL.pl layer so that future
+  IGV-only upgrades do not bust the expensive VEP cache.
+
+**`processVCF-hg38.sh`**
+
+- Changed `-g hg38` to `-g "$hg38_fasta"` (`$HG38_FASTA` env var, default
+  `$DB_BASE/GRCh38/hg38.fa`). Passing the local FASTA path instead of the
+  genome name prevents IGV from querying Broad's online genome server at
+  startup — the main source of per-sample delay. No GTF or cytoband file is
+  needed; `hg38.fa` + `hg38.fa.fai` alone suffice for read pile-up snapshots.
+- Removed `-java "$java8_path"` from the IGV call; IGV 2.19.7 uses the system
+  `java` (Java 11).
+- Updated `igv_jar` default path to `IGV_2.19.7/igv.jar`.
+- Removed `java8_path` variable and the Java 8 availability check.
+
+**`make_IGV_snapshots.py`**
+
+- Default `java_path` changed from the Java 8 absolute path to `java`.
+- Default `igv_jar_bin` updated to `bin/IGV_2.19.7/igv.jar`.
+
+**`check_docker_deps.sh`**
+
+- Replaced the Java 8 FAIL check with a Java 11+ check (FAIL if not present).
+- Updated `IGV_JAR` default to `IGV_2.19.7/igv.jar`.
+- Updated IGV functional test to use `java` (not `$JAVA8`).
+
+---
+
 ### 2026-02 — TransVar databases moved out of Docker image
 
 **`Dockerfile`**

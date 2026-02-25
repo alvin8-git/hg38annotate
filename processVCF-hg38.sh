@@ -158,7 +158,7 @@ process_single_igv_sample() {
     local bam_dir="$2"
     local igv_script="$3"
     local igv_jar="$4"
-    local java8_path="$5"
+    local hg38_fasta="$5"
 
     local sample_name=$(basename "$filter_file" .Filter.txt)
     local bed_file="IgvBed/${sample_name}.bed"
@@ -196,14 +196,15 @@ process_single_igv_sample() {
     local variant_count=$(wc -l < "$bed_file")
     echo "[IGV] Processing $sample_name ($variant_count variants)..."
 
-    # Run IGV snapshot script with HG38 genome
-    # 5-minute timeout per sample prevents a stuck IGV instance from blocking all others
+    # Run IGV snapshot script with local HG38 reference FASTA.
+    # Passing the local FASTA path instead of the genome name "hg38" prevents
+    # IGV from making online requests to the Broad genome server at startup.
+    # 5-minute timeout per sample prevents a stuck IGV instance from blocking all others.
     timeout 300 python3 "$igv_script" "$bam_file" \
         -r "$bed_file" \
         -o "SnapShots" \
-        -g hg38 \
+        -g "$hg38_fasta" \
         -bin "$igv_jar" \
-        -java "$java8_path" \
         -suffix "$sample_name" \
         -nf4 \
         -ht 500 \
@@ -229,8 +230,8 @@ generate_igv_snapshots() {
 
     local output_dir="../output"
     local igv_script="$SCRIPT_DIR/make_IGV_snapshots.py"
-    local igv_jar="${IGV_JAR:-$HOME/Software/IGV-snapshot-automator/bin/IGV_2.3.81/igv.jar}"
-    local java8_path="${JAVA8_PATH:-/usr/lib/jvm/java-8-openjdk-amd64/bin/java}"
+    local igv_jar="${IGV_JAR:-$HOME/Software/IGV/IGV_2.19.7/igv.jar}"
+    local hg38_fasta="${HG38_FASTA:-$DB_BASE/GRCh38/hg38.fa}"
     local bam_dir="../bam"
 
     # Check if IGV snapshot script exists
@@ -251,13 +252,6 @@ generate_igv_snapshots() {
     if ! command -v xvfb-run &> /dev/null; then
         log_error "xvfb-run not found, skipping IGV snapshot generation"
         log_info "Install with: apt install xvfb"
-        return 0
-    fi
-
-    # Check if Java 8 is available
-    if [ ! -f "$java8_path" ]; then
-        log_error "Java 8 not found at: $java8_path"
-        log_info "IGV 2.3.81 requires Java 8. Install with: apt install openjdk-8-jdk"
         return 0
     fi
 
@@ -310,7 +304,7 @@ generate_igv_snapshots() {
     # Run in parallel
     printf '%s\n' "${filter_files[@]}" | \
         parallel -j "$max_jobs" --colsep ':' \
-        "process_single_igv_sample {1} {2} '$igv_script' '$igv_jar' '$java8_path'" 2>&1 | \
+        "process_single_igv_sample {1} {2} '$igv_script' '$igv_jar' '$hg38_fasta'" 2>&1 | \
         while read line; do
             echo "    $line"
         done
@@ -566,17 +560,16 @@ main() {
                 fi
                 echo ""
                 echo "IGV Snapshots:"
-                local igv_jar="${IGV_JAR:-$HOME/Software/IGV-snapshot-automator/bin/IGV_2.3.81/igv.jar}"
-                local java8="${JAVA8_PATH:-/usr/lib/jvm/java-8-openjdk-amd64/bin/java}"
+                local igv_jar="${IGV_JAR:-$HOME/Software/IGV/IGV_2.19.7/igv.jar}"
                 if [ -f "$igv_jar" ]; then
                     echo "  IGV JAR: OK ($igv_jar)"
                 else
                     echo "  IGV JAR: MISSING ($igv_jar)"
                 fi
-                if [ -f "$java8" ]; then
-                    echo "  Java 8: OK ($java8)"
+                if java -version 2>&1 | grep -q "11\|17\|21"; then
+                    echo "  Java 11+: OK ($(java -version 2>&1 | head -1))"
                 else
-                    echo "  Java 8: MISSING (apt install openjdk-8-jdk)"
+                    echo "  Java 11+: MISSING (apt install openjdk-11-jre-headless)"
                 fi
                 echo ""
                 echo "Databases:"

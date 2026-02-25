@@ -41,38 +41,32 @@ RUN groupadd --gid $USER_GID $USERNAME \
 #
 # On CentOS 7 Docker hosts (kernel 3.10.x) the seccomp profile blocks the clone
 # syscall flags that the JVM requires, so pthread_create fails with EPERM and
-# the JVM cannot start at all — not even the initial VM thread.  Three separate
-# mechanisms try to invoke java during package installation:
+# the JVM cannot start at all — not even the initial VM thread.  Two mechanisms
+# try to invoke java during package installation:
 #   1. /etc/ca-certificates/update.d/jks-keystore  (a ca-certificates trigger
 #      script installed by ca-certificates-java; fires once per JDK alternative
-#      registered, so up to 3 times during this install)
+#      registered during this install)
 #   2. ca-certificates-java postinst
-#   3. openjdk-{8,11} postinst calls java via its installed absolute path
-#      (/usr/lib/jvm/java-{8,11}-openjdk-amd64/{jre/,}bin/java) for sanity checks.
+#   3. openjdk-11 postinst calls java via its installed absolute path
+#      (/usr/lib/jvm/java-11-openjdk-amd64/bin/java) for sanity checks.
 # Strategy: before unpacking any packages, divert jks-keystore AND the JVM
-# binaries to no-op stubs so every java invocation during postinst is silent.
-# Restore the real JVM binaries after installation.  Stub ca-certificates-java
+# binary to no-op stubs so every java invocation during postinst is silent.
+# Restore the real JVM binary after installation.  Stub ca-certificates-java
 # postinst for belt-and-suspenders.  Use || true throughout so dpkg failures
 # in unrelated packages (sysstat ucfr) don't abort the build layer.
 RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
     rm -f /etc/apt/apt.conf.d/docker-clean && \
     mkdir -p /etc/ca-certificates/update.d \
-             /usr/lib/jvm/java-8-openjdk-amd64/jre/bin \
              /usr/lib/jvm/java-11-openjdk-amd64/bin && \
     dpkg-divert --add --rename \
         --divert /etc/ca-certificates/update.d/jks-keystore.real \
         /etc/ca-certificates/update.d/jks-keystore && \
     dpkg-divert --add --rename \
-        --divert /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java.real \
-        /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java && \
-    dpkg-divert --add --rename \
         --divert /usr/lib/jvm/java-11-openjdk-amd64/bin/java.real \
         /usr/lib/jvm/java-11-openjdk-amd64/bin/java && \
     printf '#!/bin/sh\nexit 0\n' > /etc/ca-certificates/update.d/jks-keystore && \
-    printf '#!/bin/sh\nexit 0\n' > /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java && \
     printf '#!/bin/sh\nexit 0\n' > /usr/lib/jvm/java-11-openjdk-amd64/bin/java && \
     chmod +x /etc/ca-certificates/update.d/jks-keystore \
-             /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java \
              /usr/lib/jvm/java-11-openjdk-amd64/bin/java && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -95,7 +89,6 @@ RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
     python3 \
     python3-pip \
     openjdk-11-jre-headless \
-    openjdk-8-jre-headless \
     # IGV dependencies (headless display)
     xvfb \
     libxrender1 \
@@ -128,11 +121,9 @@ RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
     # Rename utility
     rename \
     || true && \
-    # Restore the real JVM binaries now that all postinst scripts have run.
+    # Restore the real JVM binary now that all postinst scripts have run.
     # dpkg-divert --remove --rename renames java.real back to java, but refuses
     # to overwrite an existing file.  Remove the stub first so the rename works.
-    rm -f /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java && \
-    dpkg-divert --remove --rename /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java || true && \
     rm -f /usr/lib/jvm/java-11-openjdk-amd64/bin/java && \
     dpkg-divert --remove --rename /usr/lib/jvm/java-11-openjdk-amd64/bin/java || true && \
     # Stub ca-certificates-java postinst (belt-and-suspenders: the postinst also
@@ -184,21 +175,6 @@ RUN chmod +x /home/$USERNAME/Software/snpEff/scripts/*.pl \
     ln -sf /home/$USERNAME/Databases/hg38annotate/snpEff /home/$USERNAME/Software/snpEff/data
 
 # =============================================================================
-# IGV (Integrative Genomics Viewer) for snapshots
-# IGV 2.3.81 requires Java 8
-# =============================================================================
-
-RUN mkdir -p /home/$USERNAME/Software/IGV && \
-    cd /home/$USERNAME/Software/IGV && \
-    wget -q https://data.broadinstitute.org/igv/projects/downloads/2.3/IGV_2.3.81.zip && \
-    unzip -q IGV_2.3.81.zip && \
-    rm IGV_2.3.81.zip && \
-    chown -R $USERNAME:$USERNAME /home/$USERNAME/Software/IGV
-
-ENV JAVA8_PATH=/usr/lib/jvm/java-8-openjdk-amd64/bin/java
-ENV IGV_JAR=/home/$USERNAME/Software/IGV/IGV_2.3.81/igv.jar
-
-# =============================================================================
 # VEP (Ensembl Variant Effect Predictor)
 # VEP software is included in the image
 # VEP GRCh38 cache should be mounted at runtime: /home/user/Databases/hg38annotate/vep/
@@ -210,6 +186,22 @@ RUN mkdir -p /home/$USERNAME/Databases/hg38annotate/vep && \
     chmod +x /home/$USERNAME/Software/ensembl-vep/vep && \
     cd /home/$USERNAME/Software/ensembl-vep && \
     perl INSTALL.pl --AUTO a --NO_TEST --NO_UPDATE --NO_HTSLIB --DESTDIR /home/$USERNAME/Software/ensembl-vep
+
+# =============================================================================
+# IGV (Integrative Genomics Viewer) for snapshots
+# IGV 2.19.7 requires Java 11 (already installed above).
+# Uses a local genome FASTA at runtime — no online genome server queries.
+# The reference genome is loaded from $DB_BASE/GRCh38/hg38.fa.
+# =============================================================================
+
+RUN mkdir -p /home/$USERNAME/Software/IGV && \
+    cd /home/$USERNAME/Software/IGV && \
+    wget -q https://data.broadinstitute.org/igv/projects/downloads/2.19/IGV_2.19.7.zip && \
+    unzip -q IGV_2.19.7.zip && \
+    rm IGV_2.19.7.zip && \
+    chown -R $USERNAME:$USERNAME /home/$USERNAME/Software/IGV
+
+ENV IGV_JAR=/home/$USERNAME/Software/IGV/IGV_2.19.7/igv.jar
 
 # =============================================================================
 # PIPELINE SCRIPTS (HG38 versions)

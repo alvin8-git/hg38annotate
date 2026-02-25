@@ -258,8 +258,7 @@ Set these with `-e VAR=value` in `docker run`.
 |----------|---------------------------|-------------|
 | `ANNOVAR_FAST` | `/data/alvin/annovar/annovar-fast/annovar-fast.py` | Path to annovar-fast.py |
 | `CANCERVAR_FAST` | `/data/alvin/annovar/annovar-fast/cancervar-fast.py` | Path to cancervar-fast.py |
-| `IGV_JAR` | `$HOME/Software/IGV/IGV_2.3.81/igv.jar` | IGV jar (bundled in image) |
-| `JAVA8_PATH` | `/usr/lib/jvm/java-8-openjdk-amd64/bin/java` | Java 8 for IGV |
+| `IGV_JAR` | `$HOME/Software/IGV/IGV_2.19.7/igv.jar` | IGV jar (bundled in image) |
 | `IGV_PARALLEL_JOBS` | `0` (auto: RAM ÷ 5, cap 1–4) | Number of parallel IGV instances |
 
 #### File ownership (standard Docker only)
@@ -378,7 +377,7 @@ output/
 | snpEff | 5.0e | Splice effect prediction + functional annotation |
 | TransVar | 2.5.10 | HGVS nomenclature (databases in `$DB_BASE/transvar/`) |
 | bcftools | 1.13 | VCF merge, filter, stats |
-| IGV | 2.3.81 | Screenshot generation (requires Java 8) |
+| IGV | 2.19.7 | Screenshot generation (requires Java 11; offline — loads local `hg38.fa`) |
 | Python | 3.10 | Report generation (openpyxl, cyvcf2, pysam, transvar) |
 
 ---

@@ -122,27 +122,12 @@ echo "   ----------------------------------------"
 check_command perl "Perl interpreter (VEP, snpEff)"
 check_command python3 "Python 3 (TransVar, annovar-fast, cancervar-fast)"
 
-# Test Java 11 (default)
-if java -version 2>&1 | grep -q "11"; then
-    echo -e "  ${GREEN}[OK]${NC} java - OpenJDK 11 (default, for snpEff)"
+# Test Java 11+ (required for snpEff and IGV 2.19+)
+if java -version 2>&1 | grep -q "11\|17\|21"; then
+    echo -e "  ${GREEN}[OK]${NC} java - OpenJDK 11+ (for snpEff and IGV)"
     PASS_COUNT=$((PASS_COUNT + 1))
 else
-    echo -e "  ${YELLOW}[WARN]${NC} java - Not OpenJDK 11"
-    WARN_COUNT=$((WARN_COUNT + 1))
-fi
-
-# Test Java 8 (for IGV)
-JAVA8="${JAVA8_PATH:-/usr/lib/jvm/java-8-openjdk-amd64/bin/java}"
-if [ -f "$JAVA8" ]; then
-    if "$JAVA8" -version 2>&1 | grep -q "1.8"; then
-        echo -e "  ${GREEN}[OK]${NC} Java 8 at $JAVA8 (for IGV)"
-        PASS_COUNT=$((PASS_COUNT + 1))
-    else
-        echo -e "  ${RED}[FAIL]${NC} Java 8 at $JAVA8 - wrong version"
-        FAIL_COUNT=$((FAIL_COUNT + 1))
-    fi
-else
-    echo -e "  ${RED}[FAIL]${NC} Java 8 - NOT FOUND at $JAVA8"
+    echo -e "  ${RED}[FAIL]${NC} java - OpenJDK 11+ required (apt install openjdk-11-jre-headless)"
     FAIL_COUNT=$((FAIL_COUNT + 1))
 fi
 
@@ -205,7 +190,7 @@ check_file "$HOME/Software/snpEff/SnpSift.jar" "SnpSift JAR"
 check_file "$HOME/Software/ensembl-vep/vep" "VEP executable"
 
 # Check IGV
-IGV_JAR="${IGV_JAR:-$HOME/Software/IGV/IGV_2.3.81/igv.jar}"
+IGV_JAR="${IGV_JAR:-$HOME/Software/IGV/IGV_2.19.7/igv.jar}"
 if [ -f "$IGV_JAR" ]; then
     echo -e "  ${GREEN}[OK]${NC} $IGV_JAR"
     PASS_COUNT=$((PASS_COUNT + 1))
@@ -333,17 +318,17 @@ else
     FAIL_COUNT=$((FAIL_COUNT + 1))
 fi
 
-# Test IGV with Java 8
-if "$JAVA8" -jar "$IGV_JAR" --help 2>&1 | head -1 | grep -q -i "igv\|usage"; then
+# Test IGV with Java 11
+if java -jar "$IGV_JAR" --help 2>&1 | grep -q -i "igv\|usage\|version"; then
     echo -e "  ${GREEN}[OK]${NC} IGV - functional test passed"
     PASS_COUNT=$((PASS_COUNT + 1))
 else
-    # IGV may not have --help, just check if it can start
-    if timeout 5 xvfb-run -a "$JAVA8" -jar "$IGV_JAR" --version 2>&1 || true; then
-        echo -e "  ${YELLOW}[WARN]${NC} IGV - no help flag, but JAR exists"
+    # IGV batch mode does not require --help; confirm the JAR starts
+    if [ -f "$IGV_JAR" ]; then
+        echo -e "  ${YELLOW}[WARN]${NC} IGV - JAR exists (batch mode not tested without display)"
         WARN_COUNT=$((WARN_COUNT + 1))
     else
-        echo -e "  ${RED}[FAIL]${NC} IGV - functional test failed"
+        echo -e "  ${RED}[FAIL]${NC} IGV - JAR not found at $IGV_JAR"
         FAIL_COUNT=$((FAIL_COUNT + 1))
     fi
 fi

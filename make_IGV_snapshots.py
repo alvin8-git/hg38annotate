@@ -201,9 +201,9 @@ def run_IGV_script(igv_script, igv_jar, mem_mb, java_path="java"):
 
 def main(input_files, region_file='regions.bed', genome='hg38',
          image_height='500', outdir='IGV_Snapshots',
-         igv_jar_bin="bin/IGV_2.3.81/igv.jar", igv_mem="4000",
+         igv_jar_bin="bin/IGV_2.19.7/igv.jar", igv_mem="4000",
          no_snap=False, suffix=None, nf4_mode=False, onlysnap=False,
-         group_by_strand=False, java_path="/usr/lib/jvm/java-8-openjdk-amd64/bin/java"):
+         group_by_strand=False, java_path="java"):
     """Main control function"""
 
     # If only running existing batchscript
@@ -294,8 +294,8 @@ Examples:
     parser.add_argument("-s", "--group-by-strand", dest="group_by_strand",
                         action='store_true', help="Group reads by strand")
     parser.add_argument("-java", dest='java_path',
-                        default="/usr/lib/jvm/java-8-openjdk-amd64/bin/java",
-                        help="Path to Java 8 executable (default: /usr/lib/jvm/java-8-openjdk-amd64/bin/java)")
+                        default="java",
+                        help="Path to Java executable (default: java)")
 
     args = parser.parse_args()
 
