@@ -122,6 +122,7 @@ RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
     libdbd-mysql-perl \
     libwww-perl \
     libjson-perl \
+    libarchive-extract-perl \
     libarchive-zip-perl \
     libexcel-writer-xlsx-perl \
     # Rename utility
