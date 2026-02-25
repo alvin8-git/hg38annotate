@@ -221,10 +221,17 @@ docker run --rm \
 ### Verify tool installation only
 
 ```bash
-docker run --rm hg38annotate:latest /home/user/Scripts/check_docker_deps.sh
+docker run --rm \
+    -e HUMANDB=/path/to/humandb-tbi \
+    -e ANNOVAR_FAST=/path/to/annovar-fast/annovar-fast.py \
+    -e CANCERVAR_FAST=/path/to/annovar-fast/cancervar-fast.py \
+    -v ~/Databases/hg38annotate:/home/user/Databases/hg38annotate:ro \
+    -v /path/to/annovar-fast:/path/to/annovar-fast:ro \
+    -v /path/to/humandb-tbi:/path/to/humandb-tbi:ro \
+    hg38annotate:latest /home/user/Scripts/check_docker_deps.sh
 ```
 
-Checks: core tools (bcftools, tabix, vcf-merge/sort, parallel), annotation tools (VEP, snpEff, TransVar, annovar-fast), Perl/Python modules, IGV, pipeline scripts, and database directories.
+Checks: core tools (bcftools, tabix, vcf-merge/sort, parallel), annotation tools (VEP, snpEff, TransVar, annovar-fast, cancervar-fast), Perl/Python modules, IGV, pipeline scripts, and all database directories. Expected result: 55 passed, 0 failed, 1 warning (IGV 2.3.81 does not support `--version`).
 
 ---
 
