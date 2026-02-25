@@ -39,18 +39,30 @@ SCRIPTS_DIR="$SCRIPT_DIR"
 SOFTWARE_DIR="$HOME_DIR/Software"
 DATABASES_DIR="$HOME_DIR/Databases"
 
+# Unified annotation database root — override with DB_BASE env var.
+# In Docker, mount the database volume here:
+#   -v /data/alvin/Databases/hg38annotate:/home/user/Databases/hg38annotate
+# Expected subdirectories:
+#   GRCh38/       hg38.fa + hg38.fa.fai
+#   vep/          VEP GRCh38 cache (homo_sapiens_refseq)
+#   snpEff/       GRCh38.p13.RefSeq database
+#   SG10k/        SG10K.genes.txt.gz + .tbi
+#   genomeAsia/   genomeAsia.All.hg38.txt.gz + .tbi
+#   humandb-tbi/  annovar-fast databases (downloaded separately as tar.gz)
+DB_BASE="${DB_BASE:-$DATABASES_DIR/hg38annotate}"
+
 # Annotation tools
 ANNOVAR_FAST="${ANNOVAR_FAST:-/data/alvin/annovar/annovar-fast/annovar-fast.py}"
 CANCERVAR_FAST="${CANCERVAR_FAST:-/data/alvin/annovar/annovar-fast/cancervar-fast.py}"
 SNPEFF_DIR="${SNPEFF_DIR:-$SOFTWARE_DIR/snpEff}"
 
-# Databases
-HUMANDB="${HUMANDB:-$DATABASES_DIR/humandb}"
-VEP_CACHE="${VEP_CACHE:-$DATABASES_DIR/vep}"
-HG38_FASTA="${HG38_FASTA:-$DATABASES_DIR/hg38/hg38.fa}"
+# Databases (all under the unified DB_BASE directory)
+HUMANDB="${HUMANDB:-$DB_BASE/humandb-tbi}"
+VEP_CACHE="${VEP_CACHE:-$DB_BASE/vep}"
+HG38_FASTA="${HG38_FASTA:-$DB_BASE/GRCh38/hg38.fa}"
 REFSEQ_TRANSCRIPTS="${REFSEQ_TRANSCRIPTS:-$DATABASES_DIR/Ensembldata/RefSeqSelectTranscript.txt}"
-SG10K_DB="${SG10K_DB:-$DATABASES_DIR/hg38annotate/SG10K.genes.txt.gz}"
-GENOMEASIA_DB="${GENOMEASIA_DB:-$DATABASES_DIR/hg38annotate/genomeAsia.All.hg38.txt.gz}"
+SG10K_DB="${SG10K_DB:-$DB_BASE/SG10k/SG10K.genes.txt.gz}"
+GENOMEASIA_DB="${GENOMEASIA_DB:-$DB_BASE/genomeAsia/genomeAsia.All.hg38.txt.gz}"
 
 # Mode-specific configuration
 VCF_DATABASE="$DATABASES_DIR/iSeq/vcf-hg38"

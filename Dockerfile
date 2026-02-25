@@ -165,7 +165,7 @@ RUN transvar config --download_anno --refversion hg38 --skip_reference && \
     echo "refversion = hg38" >> /home/$USERNAME/.transvar.cfg && \
     echo "" >> /home/$USERNAME/.transvar.cfg && \
     echo "[hg38]" >> /home/$USERNAME/.transvar.cfg && \
-    echo "reference = /home/$USERNAME/Databases/GRCh38/hg38.fa" >> /home/$USERNAME/.transvar.cfg && \
+    echo "reference = /home/$USERNAME/Databases/hg38annotate/GRCh38/hg38.fa" >> /home/$USERNAME/.transvar.cfg && \
     echo "refseq = $TRANSVAR_DB/hg38.refseq.gff.gz.transvardb" >> /home/$USERNAME/.transvar.cfg && \
     echo "ccds = $TRANSVAR_DB/hg38.ccds.txt.transvardb" >> /home/$USERNAME/.transvar.cfg && \
     echo "ensembl = $TRANSVAR_DB/hg38.ensembl.gtf.gz.transvardb" >> /home/$USERNAME/.transvar.cfg && \
@@ -194,15 +194,15 @@ RUN chmod +x /home/$USERNAME/Software/annovar/*.pl
 # =============================================================================
 # snpEff (copy from local)
 # Note: snpEff GRCh38 database should be mounted at runtime
-# Mount path: /home/user/Databases/snpEff
+# Mount path: /home/user/Databases/hg38annotate/snpEff/GRCh38.p13.RefSeq/
 # =============================================================================
 
 COPY --chown=1000:1000 snpEff/ /home/$USERNAME/Software/snpEff/
 
 RUN chmod +x /home/$USERNAME/Software/snpEff/scripts/*.pl \
              /home/$USERNAME/Software/snpEff/scripts/*.sh 2>/dev/null || true && \
-    mkdir -p /home/$USERNAME/Databases/snpEff && \
-    ln -sf /home/$USERNAME/Databases/snpEff /home/$USERNAME/Software/snpEff/data
+    mkdir -p /home/$USERNAME/Databases/hg38annotate/snpEff && \
+    ln -sf /home/$USERNAME/Databases/hg38annotate/snpEff /home/$USERNAME/Software/snpEff/data
 
 # =============================================================================
 # IGV (Integrative Genomics Viewer) for snapshots
@@ -222,12 +222,12 @@ ENV IGV_JAR=/home/$USERNAME/Software/IGV/IGV_2.3.81/igv.jar
 # =============================================================================
 # VEP (Ensembl Variant Effect Predictor)
 # VEP software is included in the image
-# VEP GRCh38 cache (28GB+) should be mounted at runtime: /home/user/Databases/vep
+# VEP GRCh38 cache should be mounted at runtime: /home/user/Databases/hg38annotate/vep/
 # =============================================================================
 
 COPY --chown=1000:1000 ensembl-vep/ /home/$USERNAME/Software/ensembl-vep/
 
-RUN mkdir -p /home/$USERNAME/Databases/vep && \
+RUN mkdir -p /home/$USERNAME/Databases/hg38annotate/vep && \
     chmod +x /home/$USERNAME/Software/ensembl-vep/vep && \
     cd /home/$USERNAME/Software/ensembl-vep && \
     perl INSTALL.pl --AUTO a --NO_TEST --NO_UPDATE --NO_HTSLIB --DESTDIR /home/$USERNAME/Software/ensembl-vep
@@ -251,6 +251,8 @@ RUN chmod +x /home/$USERNAME/Scripts/*.sh /home/$USERNAME/Scripts/*.py
 ENV HOME=/home/$USERNAME
 ENV PATH="/home/$USERNAME/Software/annovar:/home/$USERNAME/Software/snpEff:/home/$USERNAME/Software/ensembl-vep:/home/$USERNAME/Scripts:$PATH"
 ENV PERL5LIB="/home/$USERNAME/Software/ensembl-vep/modules"
+# Unified database directory — mount /data/alvin/Databases/hg38annotate here at runtime
+ENV DB_BASE=/home/$USERNAME/Databases/hg38annotate
 ENV ANNOVAR_FAST=/data/alvin/annovar/annovar-fast/annovar-fast.py
 ENV CANCERVAR_FAST=/data/alvin/annovar/annovar-fast/cancervar-fast.py
 
