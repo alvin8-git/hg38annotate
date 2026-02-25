@@ -295,6 +295,7 @@ run_vep() {
     vep -i "$vcf" \
         --dir_cache "$VEP_CACHE" \
         --cache \
+        --cache_version 115 \
         --assembly GRCh38 \
         --offline \
         --fasta "$HG38_FASTA" \

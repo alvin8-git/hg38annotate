@@ -2,6 +2,34 @@
 
 ## Unreleased (main)
 
+### 2026-02 — VEP 115 cache upgrade
+
+**`mergeVCFannotation-optimized-hg38.sh`**
+
+- Added `--cache_version 115` to the VEP command, switching from the VEP 105 RefSeq cache
+  (`105_GRCh38`, RefSeq 2021-05, GENCODE 39, gnomAD r2.1.1, ClinVar 202106, COSMIC 92)
+  to the VEP 115 RefSeq cache
+  (`115_GRCh38`, RefSeq August 2024, GENCODE 49, GRCh38.p14, gnomAD v4.1, ClinVar 202502, COSMIC 101).
+
+  VEP 105 software reads the 115 cache correctly via `--cache_version 115`. Output column
+  headers are **100% identical** to the VEP 105 cache — no downstream parsing changes required.
+
+  Data changes on TestData (27 variants, 5 samples):
+  - **Consequence field**: unchanged for all 27 variants; filter output unchanged (10 variants).
+  - **ClinVar** (202502 vs 202106): updated for 9 variants — TP53 intronic variants gained
+    `benign`; KRAS G12D added `not_provided,association`; TP53 Cys135Ser lost `likely_pathogenic`.
+  - **SIFT**: updated scores for KRAS G12D (`deleterious(0)` → `deleterious_low_confidence(0.04)`),
+    TP53 Pro72Arg, MPL Trp515Leu.
+  - **PolyPhen**: lost for KRAS G12D and TP53 Cys135Ser (transcript model change in RefSeq update).
+  - **PubMed**: 10–80 additional references per variant (more recent literature indexed).
+  - **Variant IDs**: new rsID (`rs2141510626`) and COSV IDs for KRAS, JAK2, CEBPA variants.
+  - **gnomAD_AF in VEP output**: empty for 10 variants (v115 cache uses renamed `gnomADe_*`
+    columns that VEP 105 software cannot map to its output schema). This does NOT affect the
+    final Excel output — gnomAD 4.1 allele frequencies are provided by annovar-fast in dedicated
+    `gnomad41_exome_AF` / `gnomad41_genome_AF` columns independently.
+
+---
+
 ### 2026-02 — IGV sort-by-base fix
 
 **`make_IGV_snapshots.py`**

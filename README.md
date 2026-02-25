@@ -349,7 +349,7 @@ output/
 |------|---------|------|
 | annovar-fast | — | Tabix-based functional annotation (replaces ANNOVAR) |
 | cancervar-fast | — | Cancer Tier I–IV classification (replaces CancerVar) |
-| VEP | 105 | Ensembl Variant Effect Predictor |
+| VEP | 105 (software) + 115 cache | Ensembl Variant Effect Predictor |
 | snpEff | 5.0e | Splice effect prediction + functional annotation |
 | TransVar | 2.5.10 | HGVS nomenclature |
 | bcftools | 1.13 | VCF merge, filter, stats |
@@ -364,6 +364,7 @@ See [CHANGES.md](CHANGES.md) for the full history.
 
 | Date | Highlights |
 |------|-----------|
+| 2026-02 | VEP 115 cache (`--cache_version 115`): ClinVar 202502, GENCODE 49, gnomAD v4.1 in cache (no column header change) |
 | 2026-02 | Unified `DB_BASE` database root; all paths configurable via a single env var |
 | 2026-02 | IGV `sort base chr:pos` fix — reads grouped by alt vs ref at the variant site |
 | 2026-02 | IGV 5-minute per-sample timeout; GenomeAsia AF columns in HTML; source-prefixed population labels |
