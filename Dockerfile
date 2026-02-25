@@ -39,13 +39,14 @@ RUN groupadd --gid $USER_GID $USERNAME \
 # are still fetched from Ubuntu's official archive — only the GPG signature
 # check is skipped during this build step.
 #
-# JAVA_TOOL_OPTIONS="-XX:+UseSerialGC" prevents JDK post-install hooks
-# (ca-certificates-java) from failing with "pthread_create failed (EPERM)"
-# on Docker hosts whose seccomp profile restricts thread creation during build.
+# On Docker build hosts with restrictive seccomp profiles, pthread_create is
+# blocked so the JVM cannot start at all (not even the initial VM thread).
+# The ca-certificates-java post-install hook runs java to update the keystore;
+# we let apt-get proceed with || true, then stub that postinst and reconfigure.
 RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
     rm -f /etc/apt/apt.conf.d/docker-clean && \
-    export JAVA_TOOL_OPTIONS="-XX:+UseSerialGC" && \
-    apt-get update && apt-get install -y --no-install-recommends \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
     # Core utilities
     bash \
     coreutils \
@@ -95,7 +96,16 @@ RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
     libarchive-zip-perl \
     # Rename utility
     rename \
-    && rm -rf /var/lib/apt/lists/*
+    || true && \
+    # ca-certificates-java postinst invokes the JVM to update the Java keystore.
+    # On Docker build hosts with restrictive seccomp profiles, pthread_create is
+    # blocked so the JVM cannot even create its initial VM thread (EPERM), and
+    # the postinst — plus every package dpkg processes after it — fails.
+    # dpkg unpacks all files before running postinst, so the JDK binaries are
+    # already on disk.  Replace the broken postinst with a no-op and reconfigure.
+    printf '#!/bin/sh\nexit 0\n' > /var/lib/dpkg/info/ca-certificates-java.postinst && \
+    dpkg --configure --pending && \
+    rm -rf /var/lib/apt/lists/*
 
 # =============================================================================
 # PERL MODULES
