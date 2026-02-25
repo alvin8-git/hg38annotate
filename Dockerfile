@@ -128,9 +128,11 @@ RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
     rename \
     || true && \
     # Restore the real JVM binaries now that all postinst scripts have run.
-    # dpkg-divert --remove --rename renames java.real back to java, overwriting
-    # our stub with the genuine JVM binary.
+    # dpkg-divert --remove --rename renames java.real back to java, but refuses
+    # to overwrite an existing file.  Remove the stub first so the rename works.
+    rm -f /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java && \
     dpkg-divert --remove --rename /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java || true && \
+    rm -f /usr/lib/jvm/java-11-openjdk-amd64/bin/java && \
     dpkg-divert --remove --rename /usr/lib/jvm/java-11-openjdk-amd64/bin/java || true && \
     # Stub ca-certificates-java postinst (belt-and-suspenders: the postinst also
     # invokes java to update the keystore; keep it stubbed since the Java keystore
@@ -149,7 +151,10 @@ RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
 # PYTHON PACKAGES (TransVar, openpyxl for HTML reports)
 # =============================================================================
 
-RUN pip3 install --no-cache-dir transvar openpyxl pysam cyvcf2
+# --progress-bar off prevents pip's Rich library from starting a background
+# refresh thread, which fails with RuntimeError on CentOS 7 Docker build hosts
+# where the seccomp profile blocks pthread_create for non-initial threads.
+RUN pip3 install --no-cache-dir --progress-bar off transvar openpyxl pysam cyvcf2
 
 # Configure TransVar with hg38 reference
 # Download annotation databases and create config pointing to mounted reference genome
