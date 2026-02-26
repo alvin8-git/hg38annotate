@@ -34,6 +34,12 @@
 ##bcftools_viewCommand=view -i (%FILTER='PASS'||%FILTER='SB') -o iSeq-001-S51_S62.x.vcf iSeq-001-S51_S62.vcf; Date=Fri Feb 20 09:05:33 2026
 ##bcftools_viewCommand=view -i (%FILTER='PASS'||%FILTER='SB') -o iSeq-001-S51_S62.x.vcf iSeq-001-S51_S62.vcf; Date=Fri Feb 20 09:07:21 2026
 ##bcftools_viewCommand=view -i (%FILTER='PASS'||%FILTER='SB') -o iSeq-001-S51_S62.x.vcf iSeq-001-S51_S62.vcf; Date=Wed Feb 25 07:27:54 2026
+##bcftools_viewCommand=view -i (%FILTER='PASS'||%FILTER='SB') -o iSeq-001-S51_S62.x.vcf iSeq-001-S51_S62.vcf; Date=Wed Feb 25 08:24:49 2026
+##bcftools_viewCommand=view -i (%FILTER='PASS'||%FILTER='SB') -o iSeq-001-S51_S62.x.vcf iSeq-001-S51_S62.vcf; Date=Thu Feb 26 02:21:14 2026
+##bcftools_viewCommand=view -i (%FILTER='PASS'||%FILTER='SB') -o iSeq-001-S51_S62.x.vcf iSeq-001-S51_S62.vcf; Date=Thu Feb 26 02:45:19 2026
+##bcftools_viewCommand=view -i (%FILTER='PASS'||%FILTER='SB') -o iSeq-001-S51_S62.x.vcf iSeq-001-S51_S62.vcf; Date=Thu Feb 26 02:47:52 2026
+##bcftools_viewCommand=view -i (%FILTER='PASS'||%FILTER='SB') -o iSeq-001-S51_S62.x.vcf iSeq-001-S51_S62.vcf; Date=Thu Feb 26 03:04:35 2026
+##bcftools_viewCommand=view -i (%FILTER='PASS'||%FILTER='SB') -o iSeq-001-S51_S62.x.vcf iSeq-001-S51_S62.vcf; Date=Thu Feb 26 03:06:23 2026
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	iSeq-001-S51_S62.bam
 chr17	7674089	.	A	C	100	PASS	DP=3713	GT:GQ:AD:DP:VF:NL:SB	0/1:100:1885,1818:3713:0.49:20:-100
 chr17	7674109	.	G	A	100	PASS	DP=3512	GT:GQ:AD:DP:VF:NL:SB	0/1:100:1725,1787:3512:0.509:20:-100
