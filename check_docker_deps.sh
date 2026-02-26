@@ -130,7 +130,7 @@ elif java -version 2>&1 | grep -q "11\|17"; then
     echo -e "  ${YELLOW}[WARN]${NC} java - OpenJDK 11/17 found; IGV 2.19.7 requires Java 21"
     WARN_COUNT=$((WARN_COUNT + 1))
 else
-    echo -e "  ${RED}[FAIL]${NC} java - OpenJDK 21 required (apt install openjdk-21-jre-headless)"
+    echo -e "  ${RED}[FAIL]${NC} java - OpenJDK 21 required (apt install openjdk-21-jre)"
     FAIL_COUNT=$((FAIL_COUNT + 1))
 fi
 
@@ -239,6 +239,18 @@ echo "    ----------------------------------------"
 DB_BASE="${DB_BASE:-$HOME/Databases/hg38annotate}"
 HUMANDB="${HUMANDB:-$DB_BASE/humandb-tbi}"
 check_dir "$DB_BASE/GRCh38"        "GRCh38 reference genome"
+# VEP requires hg38.fa.index (BioPerl FASTA index) alongside hg38.fa.
+# If this file is missing, VEP crashes silently and 5 VEP columns shift left.
+# Create once (writable mount): docker run -v .../GRCh38:/home/user/Databases/hg38annotate/GRCh38 \
+#   hg38annotate perl -I /home/user/Software/ensembl-vep -MBio::DB::Fasta \
+#   -e 'Bio::DB::Fasta->new("/home/user/Databases/hg38annotate/GRCh38/hg38.fa")'
+if [ -f "$DB_BASE/GRCh38/hg38.fa.index" ]; then
+    echo -e "  ${GREEN}[OK]${NC} $DB_BASE/GRCh38/hg38.fa.index (VEP FASTA index)"
+    PASS_COUNT=$((PASS_COUNT + 1))
+else
+    echo -e "  ${RED}[FAIL]${NC} $DB_BASE/GRCh38/hg38.fa.index - MISSING (VEP will crash; see README Setup step 4)"
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+fi
 check_dir "$DB_BASE/vep"           "VEP GRCh38 cache"
 check_dir "$DB_BASE/snpEff"        "snpEff GRCh38 database"
 check_dir "$DB_BASE/transvar"      "TransVar annotation databases"

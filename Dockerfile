@@ -124,8 +124,13 @@ RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
     # Restore the real JVM binary now that all postinst scripts have run.
     # dpkg-divert --remove --rename renames java.real back to java, but refuses
     # to overwrite an existing file.  Remove the stub first so the rename works.
+    # Fallback: if dpkg-divert restore fails (e.g. java.real was never created
+    # because the install failed silently), move java.real manually.  This keeps
+    # the divert registry slightly inconsistent but ensures java is executable.
     rm -f /usr/lib/jvm/java-21-openjdk-amd64/bin/java && \
-    dpkg-divert --remove --rename /usr/lib/jvm/java-21-openjdk-amd64/bin/java || true && \
+    dpkg-divert --remove --rename /usr/lib/jvm/java-21-openjdk-amd64/bin/java 2>/dev/null || \
+    mv /usr/lib/jvm/java-21-openjdk-amd64/bin/java.real \
+       /usr/lib/jvm/java-21-openjdk-amd64/bin/java 2>/dev/null || true && \
     # Stub ca-certificates-java postinst (belt-and-suspenders: the postinst also
     # invokes java to update the keystore; keep it stubbed since the Java keystore
     # is not required at runtime for this pipeline).
