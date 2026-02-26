@@ -181,13 +181,16 @@ def write_IGV_script(input_files, region_file, batchscript_file, snapshot_dir,
     append_string("exit", batchscript_file)
 
 
-def run_IGV_script(igv_script, igv_jar, mem_mb=None, java_path=None):
+def run_IGV_script(igv_script, igv_jar, mem_mb=None, java_path=None, genome=None):
     """Run IGV batch script using xvfb-run.
 
     igv_jar may be igv.sh (IGV 2.19.7+) or igv.jar (legacy).
     mem_mb and java_path are unused with igv.sh (memory is set in igv.sh).
+    genome: if a local file path, pass -g to igv.sh so IGV loads the local
+    FASTA at startup instead of fetching the default genome from the internet.
     """
-    igv_command = f"xvfb-run --auto-servernum --server-num=1 {igv_jar} -b {igv_script}"
+    genome_arg = f' -g "{genome}"' if genome and os.path.isfile(genome) else ''
+    igv_command = f"xvfb-run --auto-servernum --server-num=1 {igv_jar}{genome_arg} -b {igv_script}"
 
     print(f'\nIGV command:\n{igv_command}\n')
 
@@ -258,7 +261,7 @@ def main(input_files, region_file='regions.bed', genome='hg38',
 
     # Run IGV
     if not no_snap:
-        run_IGV_script(batchscript_file, igv_jar_bin, igv_mem, java_path)
+        run_IGV_script(batchscript_file, igv_jar_bin, igv_mem, java_path, genome=genome)
 
 
 def run():
