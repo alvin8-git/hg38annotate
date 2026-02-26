@@ -161,7 +161,6 @@ echo "   Required Python libraries"
 echo "   ----------------------------------------"
 check_python_module "openpyxl"
 check_python_module "transvar"
-check_python_module "cyvcf2"
 check_python_module "pysam"
 
 # -----------------------------------------------------------------------------
