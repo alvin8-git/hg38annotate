@@ -39,6 +39,20 @@ ucsc = $_tvar/hg38.ucsc.txt.gz.transvardb
 EOF
 chown $TARGET_USER:$TARGET_USER /home/$TARGET_USER/.transvar.cfg 2>/dev/null || true
 
+# =============================================================================
+# Write IGV preferences so the default genome is the local FASTA.
+# Without this, IGV's startup calls runWithDefaultGenome("hg38") which tries
+# to download hg38.json from GitHub before the batch script's genome command
+# overrides it.  Setting DEFAULT_GENOME_KEY here makes the startup default use
+# the local FASTA, so restoreGenomeTracks loads no online tracks.
+# =============================================================================
+_igv_dir="/home/$TARGET_USER/igv"
+mkdir -p "$_igv_dir"
+cat > "$_igv_dir/prefs.properties" << IGVEOF
+DEFAULT_GENOME_KEY=${_db}/GRCh38/hg38.fa
+IGVEOF
+chown -R "$TARGET_USER":"$TARGET_USER" "$_igv_dir" 2>/dev/null || true
+
 if [ "$(id -u)" = "0" ]; then
     # Detect rootless Docker: in rootless mode, container uid 0 maps to the
     # host user's uid (non-zero). Check the first entry of uid_map.

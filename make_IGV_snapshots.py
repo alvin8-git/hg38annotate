@@ -170,6 +170,12 @@ def write_batchscript_regions(region_file, batchscript_file, height, suffix, nf4
         if group_by_strand:
             append_string("group strand", batchscript_file)
 
+        # Wait for BAM loading and rendering to finish before taking snapshot.
+        # IGV batch mode has a race condition (ConcurrentModificationException)
+        # where the rendering thread iterates the alignment list while the BAM
+        # loading thread is still adding to it.  sleep 2000 gives the loader
+        # time to complete so the snapshot is clean.
+        append_string("sleep 2000", batchscript_file)
         append_string(f"snapshot {snapshot_filename}", batchscript_file)
 
 
