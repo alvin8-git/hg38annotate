@@ -7,7 +7,7 @@ A Docker-based VCF annotation pipeline for the HG38/GRCh38 reference genome. Des
 - **Parallel multi-tool annotation** — annovar-fast, VEP, snpEff, and TransVar run concurrently
 - **Cancer classification** — CancerVar Tier I–IV scoring via cancervar-fast
 - **Population databases** — SG10K (AF_CHS/AF_INS/AF_MAS) and GenomeAsia (AF_SEA/AF_NEA/AF_SAS) via tabix lookup; gnomAD, ExAC, ESP6500, 1000 Genomes via annovar-fast
-- **IGV screenshots** — Automated headless IGV 2.3.81 snapshots for each filtered variant (reads sorted by base at variant position)
+- **IGV screenshots** — Automated headless IGV 2.19.7 snapshots for each filtered variant (reads sorted by base at variant position; offline — loads local hg38.fa)
 - **Interactive HTML reports** — Per-sample variant pages with embedded IGV screenshots, CancerVar tier badges, VAF bar, ClinVar/COSMIC links, ACMG chips, and population frequency tables
 - **Stage control** — Run all three stages or individual stages; skip already-complete stages; `--force` to re-run; `--dry-run` to preview
 
@@ -231,7 +231,7 @@ docker run --rm \
     hg38annotate:latest /home/user/Scripts/check_docker_deps.sh
 ```
 
-Checks: core tools (bcftools, tabix, vcf-merge/sort, parallel), annotation tools (VEP, snpEff, TransVar, annovar-fast, cancervar-fast), Perl/Python modules, IGV, pipeline scripts, and all database directories. Expected result: 55 passed, 0 failed, 1 warning (IGV 2.3.81 does not support `--version`).
+Checks: core tools (bcftools, tabix, vcf-merge/sort, parallel), annotation tools (VEP, snpEff, TransVar, annovar-fast, cancervar-fast), Perl/Python modules, IGV, pipeline scripts, and all database directories. Expected result: 55 passed, 0 failed, 0 warnings.
 
 ---
 
@@ -258,7 +258,7 @@ Set these with `-e VAR=value` in `docker run`.
 |----------|---------------------------|-------------|
 | `ANNOVAR_FAST` | `/data/alvin/annovar/annovar-fast/annovar-fast.py` | Path to annovar-fast.py |
 | `CANCERVAR_FAST` | `/data/alvin/annovar/annovar-fast/cancervar-fast.py` | Path to cancervar-fast.py |
-| `IGV_JAR` | `$HOME/Software/IGV/IGV_2.19.7/igv.jar` | IGV jar (bundled in image) |
+| `IGV_JAR` | `$HOME/Software/IGV/IGV_2.19.7/igv.sh` | IGV launcher script (bundled in image) |
 | `IGV_PARALLEL_JOBS` | `0` (auto: RAM ÷ 5, cap 1–4) | Number of parallel IGV instances |
 
 #### File ownership (standard Docker only)
@@ -377,7 +377,7 @@ output/
 | snpEff | 5.0e | Splice effect prediction + functional annotation |
 | TransVar | 2.5.10 | HGVS nomenclature (databases in `$DB_BASE/transvar/`) |
 | bcftools | 1.13 | VCF merge, filter, stats |
-| IGV | 2.19.7 | Screenshot generation (requires Java 11; offline — loads local `hg38.fa`) |
+| IGV | 2.19.7 | Screenshot generation (requires Java 21; offline — loads local `hg38.fa`) |
 | Python | 3.10 | Report generation (openpyxl, cyvcf2, pysam, transvar) |
 
 ---

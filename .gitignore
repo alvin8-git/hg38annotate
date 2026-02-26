@@ -41,6 +41,7 @@ TestData/**/VCFlist.txt
 
 # Miscellaneous local files
 Software.tar.gz
+Databases.tar.gz
 gene_annotator.py
 
 # Python
