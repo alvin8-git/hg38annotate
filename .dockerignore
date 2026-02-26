@@ -1,0 +1,45 @@
+# =============================================================================
+# .dockerignore — exclude files not needed in the Docker build context
+# Only snpEff/, ensembl-vep/, and the pipeline scripts are COPYed into
+# the image.  Everything else just inflates the build context transfer.
+# =============================================================================
+
+# Git internals (can be large, never needed)
+.git/
+.gitignore
+.claude/
+
+# Large archives (distributed via GitHub Releases, not baked into image)
+Databases.tar.gz
+Software.tar.gz
+
+# Annotation tool dirs NOT copied into image (mounted at runtime instead)
+annovar/
+CancerVar/
+
+# Test and development data
+TestData/
+tasks/
+
+# Documentation and local notes
+*.md
+Notes.md
+TODO.md
+
+# Local/dev scripts not baked into image
+gene_annotator.py
+run_docker.sh
+docker-compose.yml
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
