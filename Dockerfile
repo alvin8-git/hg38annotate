@@ -147,7 +147,7 @@ RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
 # --progress-bar off prevents pip's Rich library from starting a background
 # refresh thread, which fails with RuntimeError on CentOS 7 Docker build hosts
 # where the seccomp profile blocks pthread_create for non-initial threads.
-RUN pip3 install --no-cache-dir --progress-bar off --prefer-binary transvar openpyxl pysam
+RUN pip3 install --no-cache-dir --progress-bar off --prefer-binary transvar openpyxl pysam cyvcf2
 
 # TransVar configuration is generated at container startup by entrypoint.sh
 # based on the $DB_BASE environment variable so it is correct regardless of

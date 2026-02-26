@@ -162,6 +162,7 @@ echo "   ----------------------------------------"
 check_python_module "openpyxl"
 check_python_module "transvar"
 check_python_module "pysam"
+check_python_module "cyvcf2"
 
 # -----------------------------------------------------------------------------
 echo ""
