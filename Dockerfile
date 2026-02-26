@@ -88,7 +88,7 @@ RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
     perl \
     python3 \
     python3-pip \
-    openjdk-21-jre-headless \
+    openjdk-21-jre \
     # IGV dependencies (headless display)
     xvfb \
     libxrender1 \
@@ -189,7 +189,7 @@ RUN mkdir -p /home/$USERNAME/Databases/hg38annotate/vep && \
 
 # =============================================================================
 # IGV (Integrative Genomics Viewer) for snapshots
-# IGV 2.19.7 requires Java 21 (openjdk-21-jre-headless, installed above).
+# IGV 2.19.7 requires Java 21 (openjdk-21-jre, installed above).
 # Uses igv.sh launcher with --module-path; batch mode (-b) and local genome
 # FASTA are fully supported — no online genome server queries at runtime.
 # The reference genome is loaded from $DB_BASE/GRCh38/hg38.fa.

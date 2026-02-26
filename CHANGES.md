@@ -7,8 +7,11 @@
 **`Dockerfile`**
 
 - Upgraded IGV from 2.3.81 (2016) to 2.19.7 (October 2025). IGV 2.19.7
-  requires Java 21 (`openjdk-21-jre-headless`), replacing Java 11
+  requires Java 21 (`openjdk-21-jre`), replacing Java 11
   (`openjdk-11-jre-headless`). Java 21 is backward-compatible with snpEff jars.
+  Uses the full (non-headless) JRE: `openjdk-21-jre-headless` lacks
+  `libawt_xawt.so` (the X11 AWT toolkit), causing `HeadlessException` in
+  IGV's Swing GUI even with DISPLAY set. `openjdk-21-jre` provides it.
 - Removed `openjdk-8-jre-headless` — no longer needed.
 - Moved IGV download layer to after the VEP INSTALL.pl layer so that future
   IGV-only upgrades do not bust the expensive VEP cache.
