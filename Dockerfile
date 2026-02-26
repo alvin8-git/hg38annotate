@@ -121,27 +121,23 @@ RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
     # Rename utility
     rename \
     || true && \
-    # Restore the real JVM binary now that all postinst scripts have run.
-    # dpkg-divert --remove --rename renames java.real back to java, but refuses
-    # to overwrite an existing file.  Remove the stub first so the rename works.
-    # Fallback: if dpkg-divert restore fails (e.g. java.real was never created
-    # because the install failed silently), move java.real manually.  This keeps
-    # the divert registry slightly inconsistent but ensures java is executable.
+    # Stub ca-certificates-java postinst so it doesn't invoke java to update
+    # the keystore (the keystore is not required by this pipeline at runtime).
+    printf '#!/bin/sh\nexit 0\n' > /var/lib/dpkg/info/ca-certificates-java.postinst && \
+    # sysstat postinst uses ucf/ucfr to manage /etc/default/sysstat.  Wipe all
+    # ucf state so dpkg --configure starts fresh.
+    rm -rf /var/lib/ucf/ && \
+    # Run dpkg --configure --pending BEFORE removing the stub so that any
+    # deferred openjdk postinst (e.g. on CentOS 7 where apt defers configuration)
+    # still calls the no-op stub rather than crashing on a missing java binary.
+    dpkg --configure --pending || true && \
+    # Now restore the real JVM binary.  dpkg-divert --remove --rename renames
+    # java.real back to java.  Fallback: mv java.real directly if divert fails
+    # (e.g. the divert registry was cleared by dpkg --configure --pending above).
     rm -f /usr/lib/jvm/java-21-openjdk-amd64/bin/java && \
     dpkg-divert --remove --rename /usr/lib/jvm/java-21-openjdk-amd64/bin/java 2>/dev/null || \
     mv /usr/lib/jvm/java-21-openjdk-amd64/bin/java.real \
        /usr/lib/jvm/java-21-openjdk-amd64/bin/java 2>/dev/null || true && \
-    # Stub ca-certificates-java postinst (belt-and-suspenders: the postinst also
-    # invokes java to update the keystore; keep it stubbed since the Java keystore
-    # is not required at runtime for this pipeline).
-    printf '#!/bin/sh\nexit 0\n' > /var/lib/dpkg/info/ca-certificates-java.postinst && \
-    # sysstat postinst uses ucf/ucfr to manage /etc/default/sysstat.  Both the
-    # hashfile and registry may be left inconsistent after a partial install,
-    # causing "do not have write privilege" errors on retry.  Wipe all ucf state
-    # so dpkg --configure starts fresh.  sysstat/parallel binaries are on disk
-    # (dpkg unpacks before postinst) and functional even if not fully configured.
-    rm -rf /var/lib/ucf/ && \
-    dpkg --configure --pending || true && \
     rm -rf /var/lib/apt/lists/*
 
 # =============================================================================
@@ -151,7 +147,7 @@ RUN sed -i 's|^deb |deb [trusted=yes] |' /etc/apt/sources.list && \
 # --progress-bar off prevents pip's Rich library from starting a background
 # refresh thread, which fails with RuntimeError on CentOS 7 Docker build hosts
 # where the seccomp profile blocks pthread_create for non-initial threads.
-RUN pip3 install --no-cache-dir --progress-bar off transvar openpyxl pysam cyvcf2
+RUN pip3 install --no-cache-dir --progress-bar off --prefer-binary transvar openpyxl pysam cyvcf2
 
 # TransVar configuration is generated at container startup by entrypoint.sh
 # based on the $DB_BASE environment variable so it is correct regardless of
