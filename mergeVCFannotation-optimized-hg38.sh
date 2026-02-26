@@ -117,11 +117,11 @@ filter_anno_iseq() {
     cat \
         <(awk -F"\t" '{if(NR==1)print}' "$FILE") \
         <(awk -F"\t" '{if(NR!=1)print}' "$FILE" | \
-        awk -F"\t" '{if(!($23=="intronic"&&$25=="intron_variant"))print}' | \
-        awk -F"\t" '{if(!($23=="intronic"&&$25!~/splice_donor_variant|splice_acceptor_variant/))print}' | \
-        awk -F"\t" '{if(!($22=="synonymous SNV"&&$25=="synonymous_variant"))print}' | \
-        awk -F"\t" '{if(!($23=="UTR3"&&$25=="3_prime_UTR_variant"))print}' | \
-        awk -F"\t" '{if(!($23=="UTR5"&&$25=="5_prime_UTR_variant"))print}' | \
+        awk -F"\t" '{if(!($22=="intronic"&&$24=="intron_variant"))print}' | \
+        awk -F"\t" '{if(!($22=="intronic"&&$24!~/splice_donor_variant|splice_acceptor_variant/))print}' | \
+        awk -F"\t" '{if(!($21=="synonymous SNV"&&$24=="synonymous_variant"))print}' | \
+        awk -F"\t" '{if(!($22=="UTR3"&&$24=="3_prime_UTR_variant"))print}' | \
+        awk -F"\t" '{if(!($22=="UTR5"&&$24=="5_prime_UTR_variant"))print}' | \
         awk -F"\t" '{if($12>=100)print}' | \
         awk -F"\t" '{if($14>0.05)print}' | \
         sort -k1,1V -k2,2n) \
