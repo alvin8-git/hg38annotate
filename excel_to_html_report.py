@@ -523,6 +523,68 @@ def _cancervar_tier_badge(cancervar_str: str) -> str:
     return ""
 
 
+_CLNREVSTAT_STARS = {
+    "practice_guideline": "★★★★",
+    "reviewed_by_expert_panel": "★★★",
+    "criteria_provided,_multiple_submitters,_no_conflicts": "★★",
+    "criteria_provided,_single_submitter": "★",
+    "no_assertion_criteria_provided": "☆",
+    "no_assertion_provided": "☆",
+    "conflicting_interpretations_of_pathogenicity": "⚠ conflict",
+}
+
+
+def clnrevstat_to_stars(val: str) -> str:
+    """Convert CLNREVSTAT string to star HTML (span with title)."""
+    val = (val or "").strip()
+    stars = _CLNREVSTAT_STARS.get(val, "")
+    if not stars:
+        return ""
+    return f'<span class="clnrev-stars" title="{val}">{stars}</span>'
+
+
+def _clinvar_sig_badge(sig: str) -> str:
+    """Return a coloured ClinVar significance badge."""
+    sig = (sig or "").strip()
+    if not sig or sig in (".", "not_provided"):
+        return ""
+    sig_lower = sig.lower().replace(" ", "_")
+    if "pathogenic" in sig_lower and "likely" not in sig_lower and "benign" not in sig_lower:
+        css = "badge-pathogenic"
+    elif "likely_pathogenic" in sig_lower:
+        css = "badge-likely-pathogenic"
+    elif "benign" in sig_lower and "likely" not in sig_lower:
+        css = "badge-benign"
+    elif "likely_benign" in sig_lower:
+        css = "badge-likely-benign"
+    elif "uncertain" in sig_lower or "vus" in sig_lower:
+        css = "badge-vus"
+    else:
+        css = "badge-other"
+    return f'<span class="clnsig-badge {css}">{sig}</span>'
+
+
+def _intervar_badge(intervar: str) -> str:
+    """Return a coloured InterVar classification badge."""
+    intervar = (intervar or "").strip()
+    if not intervar or intervar in (".", "Unknown"):
+        return ""
+    iv_lower = intervar.lower()
+    if "pathogenic" in iv_lower and "likely" not in iv_lower:
+        css = "badge-pathogenic"
+    elif "likely pathogenic" in iv_lower:
+        css = "badge-likely-pathogenic"
+    elif "benign" in iv_lower and "likely" not in iv_lower:
+        css = "badge-benign"
+    elif "likely benign" in iv_lower:
+        css = "badge-likely-benign"
+    elif "uncertain" in iv_lower:
+        css = "badge-vus"
+    else:
+        css = "badge-other"
+    return f'<span class="intervar-badge {css}">{intervar}</span>'
+
+
 class iSeqReportGenerator:
     def __init__(self, excel_path: str, output_dir: str, snapshots_dir: Optional[str] = None):
         self.excel_path = Path(excel_path)
