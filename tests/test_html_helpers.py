@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from excel_to_html_report import clnrevstat_to_stars, _clinvar_sig_badge, _intervar_badge
+from excel_to_html_report import clnrevstat_to_stars, _clinvar_sig_badge, _intervar_badge, iSeqReportGenerator, ACMG_CRITERIA
 
 
 class TestClnrevstatToStars:
@@ -116,3 +116,57 @@ class TestIntervarBadge:
     def test_likely_benign(self):
         result = _intervar_badge("Likely benign")
         assert "badge-likely-benign" in result
+
+
+class TestGetActiveAcmgCriteria:
+    def _make_generator(self):
+        """Return a minimally initialised iSeqReportGenerator.
+
+        __init__ requires excel_path and output_dir as positional strings.
+        Pass dummy values; _get_active_acmg_criteria does not open any files.
+        """
+        return iSeqReportGenerator("/dev/null", "/tmp")
+
+    def test_active_criterion_returned(self):
+        gen = self._make_generator()
+        col_map = {"PVS1": 0}
+        row = ["1"]
+        result = gen._get_active_acmg_criteria(row, col_map)
+        assert "PVS1" in result
+
+    def test_dot_value_not_active(self):
+        gen = self._make_generator()
+        col_map = {"PVS1": 0}
+        row = ["."]
+        result = gen._get_active_acmg_criteria(row, col_map)
+        assert result == []
+
+    def test_zero_value_not_active(self):
+        gen = self._make_generator()
+        col_map = {"PVS1": 0}
+        row = ["0"]
+        result = gen._get_active_acmg_criteria(row, col_map)
+        assert result == []
+
+    def test_empty_value_not_active(self):
+        gen = self._make_generator()
+        col_map = {"PVS1": 0}
+        row = [""]
+        result = gen._get_active_acmg_criteria(row, col_map)
+        assert result == []
+
+    def test_missing_col_in_col_map_skipped(self):
+        gen = self._make_generator()
+        col_map = {}  # PVS1 not in col_map
+        row = ["1"]
+        result = gen._get_active_acmg_criteria(row, col_map)
+        assert result == []
+
+    def test_multiple_active_criteria(self):
+        gen = self._make_generator()
+        col_map = {"PVS1": 0, "PM2": 1, "PP3": 2}
+        row = ["1", ".", "Supporting"]
+        result = gen._get_active_acmg_criteria(row, col_map)
+        assert "PVS1" in result
+        assert "PM2" not in result
+        assert "PP3" in result

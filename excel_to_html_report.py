@@ -845,6 +845,23 @@ class iSeqReportGenerator:
             return f"Column_{col_idx}"
         return self.headers[col_idx - 1]
 
+    def _get_active_acmg_criteria(self, row, col_map):
+        """Return list of ACMG criterion names that have evidence in this row.
+
+        A criterion is active if its column value is non-empty, not '.', and not '0'.
+        Iterates all criteria defined in ACMG_CRITERIA (e.g. PVS1, PS1, PM2, etc.).
+        """
+        active = []
+        for _category, criteria_list in ACMG_CRITERIA.items():
+            for criterion, _label, _css_class in criteria_list:
+                col_idx = col_map.get(criterion)
+                if col_idx is None:
+                    continue
+                val = str(row[col_idx]).strip() if col_idx < len(row) else ""
+                if val and val not in (".", "0"):
+                    active.append(criterion)
+        return active
+
     def find_igv_screenshot(self, sample: str, chrom: str, pos: str) -> Optional[str]:
         if not self.snapshots_dir or not self.snapshots_dir.exists():
             return None
