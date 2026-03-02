@@ -478,6 +478,152 @@ body {
     .breadcrumb { display: none; }
     .panel { break-inside: avoid; }
 }
+
+/* ── Tab bar ─────────────────────────────────────────────────────── */
+.tab-bar {
+    display: flex;
+    gap: 4px;
+    margin: 0 0 16px 0;
+    border-bottom: 2px solid #dee2e6;
+    padding-bottom: 0;
+}
+.tab-btn {
+    padding: 8px 20px;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    background: #f8f9fa;
+    cursor: pointer;
+    font-size: 0.95em;
+    color: #495057;
+    position: relative;
+    bottom: -2px;
+}
+.tab-btn:hover { background: #e9ecef; }
+.tab-btn.active {
+    background: #fff;
+    border-color: #dee2e6;
+    color: #212529;
+    font-weight: 600;
+}
+
+/* ── Clinical summary table ───────────────────────────────────────── */
+.clinical-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+    margin-bottom: 24px;
+}
+.clinical-table th {
+    background: #f1f3f5;
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 2px solid #dee2e6;
+    white-space: nowrap;
+}
+.clinical-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #e9ecef;
+    vertical-align: middle;
+}
+.clinical-table tr:hover { background: #f8f9fa; cursor: pointer; }
+
+/* ── ClinVar / InterVar badges ────────────────────────────────────── */
+.clnsig-badge, .intervar-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 0.82em;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.badge-pathogenic        { background: #f8d7da; color: #842029; }
+.badge-likely-pathogenic { background: #ffe5d0; color: #7d3900; }
+.badge-benign            { background: #d1e7dd; color: #0f5132; }
+.badge-likely-benign     { background: #d3f4ed; color: #0a4a3a; }
+.badge-vus               { background: #e2e3e5; color: #41464b; }
+.badge-other             { background: #e2e3e5; color: #41464b; }
+
+/* ── CLNREVSTAT star rating ───────────────────────────────────────── */
+.clnrev-stars {
+    font-size: 1em;
+    letter-spacing: 1px;
+    color: #f5a623;
+    cursor: help;
+}
+
+/* ── Variant detail cards ─────────────────────────────────────────── */
+.variant-card {
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+.card-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #f8f9fa;
+    cursor: pointer;
+    user-select: none;
+}
+.card-header:hover { background: #e9ecef; }
+.card-gene {
+    font-weight: 700;
+    font-size: 1.05em;
+    margin-right: 4px;
+}
+.card-hgvs {
+    color: #495057;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+.card-vaf {
+    margin-left: auto;
+    font-size: 0.88em;
+    color: #6c757d;
+}
+.card-toggle {
+    font-size: 0.8em;
+    color: #6c757d;
+    margin-left: 6px;
+}
+.card-body {
+    padding: 12px 16px;
+    font-size: 0.9em;
+    border-top: 1px solid #dee2e6;
+}
+.card-body.collapsed { display: none; }
+.card-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+    align-items: flex-start;
+}
+.card-label {
+    font-weight: 600;
+    min-width: 160px;
+    color: #495057;
+    flex-shrink: 0;
+}
+.acmg-chip {
+    display: inline-block;
+    padding: 1px 6px;
+    margin: 1px 2px;
+    border-radius: 3px;
+    font-size: 0.8em;
+    font-weight: 700;
+    background: #cfe2ff;
+    color: #084298;
+}
+.card-igv img {
+    max-width: 100%;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    margin-top: 6px;
+}
 """
 
 
