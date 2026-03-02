@@ -608,7 +608,7 @@ body {
     color: #495057;
     flex-shrink: 0;
 }
-.acmg-chip {
+.card-body .acmg-chip {
     display: inline-block;
     padding: 1px 6px;
     margin: 1px 2px;
