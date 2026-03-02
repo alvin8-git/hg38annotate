@@ -862,6 +862,68 @@ class iSeqReportGenerator:
                     active.append(criterion)
         return active
 
+    def _clinical_summary_table_html(self, variants, col_map):
+        """Build compact clinical summary table HTML — one row per variant."""
+        from html import escape
+
+        def _get(row, col_name, default=""):
+            idx = col_map.get(col_name)
+            if idx is None or idx >= len(row):
+                return default
+            val = str(row[idx]).strip()
+            return val if val not in (".", "") else default
+
+        rows_html = []
+        for i, row in enumerate(variants):
+            gene   = escape(_get(row, "GENE"))
+            hgvsc  = escape(_get(row, "HGVSc"))
+            hgvsp  = escape(_get(row, "HGVSp"))
+            clnsig = _get(row, "CLNSIG")
+            clnrev = _get(row, "CLNREVSTAT")
+            canvar = _get(row, "CancerVar and Evidence")
+            interv = _get(row, "InterVar_automated")
+            vaf    = escape(_get(row, "VAF"))
+            dp     = escape(_get(row, "DP"))
+
+            clnsig_badge = _clinvar_sig_badge(clnsig)  if clnsig  else ""
+            stars        = clnrevstat_to_stars(clnrev)  if clnrev  else ""
+            canvar_badge = _cancervar_tier_badge(canvar) if canvar else ""
+            interv_badge = _intervar_badge(interv)       if interv  else ""
+
+            rows_html.append(f"""
+        <tr onclick="scrollToCard('card-{i}')" style="cursor:pointer">
+            <td>{gene}</td>
+            <td style="font-family:monospace;font-size:0.85em">{hgvsc}</td>
+            <td>{hgvsp}</td>
+            <td>{clnsig_badge or escape(clnsig)}</td>
+            <td>{stars}</td>
+            <td>{canvar_badge}</td>
+            <td>{interv_badge or escape(interv)}</td>
+            <td>{vaf}</td>
+            <td>{dp}</td>
+        </tr>""")
+
+        rows_str = "\n".join(rows_html)
+        return f"""
+<table class="clinical-table">
+  <thead>
+    <tr>
+      <th>Gene</th>
+      <th>HGVSc</th>
+      <th>HGVSp</th>
+      <th>ClinVar</th>
+      <th>&#9733;</th>
+      <th>CancerVar</th>
+      <th>InterVar</th>
+      <th>VAF</th>
+      <th>DP</th>
+    </tr>
+  </thead>
+  <tbody>
+    {rows_str}
+  </tbody>
+</table>"""
+
     def find_igv_screenshot(self, sample: str, chrom: str, pos: str) -> Optional[str]:
         if not self.snapshots_dir or not self.snapshots_dir.exists():
             return None

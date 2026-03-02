@@ -170,3 +170,68 @@ class TestGetActiveAcmgCriteria:
         assert "PVS1" in result
         assert "PM2" not in result
         assert "PP3" in result
+
+
+class TestClinicalSummaryTable:
+    def _make_generator(self):
+        from excel_to_html_report import iSeqReportGenerator
+        return iSeqReportGenerator("/dev/null", "/tmp")
+
+    def test_returns_table_html(self):
+        gen = self._make_generator()
+        col_map = {"GENE": 0, "CLNSIG": 1, "CLNREVSTAT": 2}
+        variants = [["BRCA1", "Pathogenic", "reviewed_by_expert_panel"]]
+        html = gen._clinical_summary_table_html(variants, col_map)
+        assert "<table" in html
+        assert "BRCA1" in html
+        assert "★★★" in html  # expert panel stars
+        assert "badge-pathogenic" in html
+
+    def test_empty_variants_returns_empty_table(self):
+        gen = self._make_generator()
+        html = gen._clinical_summary_table_html([], {})
+        assert "<table" in html
+        assert "<tbody>" in html
+
+    def test_row_has_onclick_scrollToCard(self):
+        gen = self._make_generator()
+        col_map = {"GENE": 0}
+        variants = [["TP53"], ["KRAS"]]
+        html = gen._clinical_summary_table_html(variants, col_map)
+        assert "scrollToCard('card-0')" in html
+        assert "scrollToCard('card-1')" in html
+
+    def test_missing_col_in_col_map_returns_empty_cell(self):
+        gen = self._make_generator()
+        col_map = {}
+        variants = [["BRCA1", "Pathogenic"]]
+        html = gen._clinical_summary_table_html(variants, col_map)
+        assert "<table" in html
+
+    def test_cancervar_badge_rendered(self):
+        gen = self._make_generator()
+        col_map = {"CancerVar and Evidence": 0}
+        variants = [["Tier I Actionable"]]
+        html = gen._clinical_summary_table_html(variants, col_map)
+        assert "cancervar-tier1" in html
+
+    def test_intervar_badge_rendered(self):
+        gen = self._make_generator()
+        col_map = {"InterVar_automated": 0}
+        variants = [["Likely pathogenic"]]
+        html = gen._clinical_summary_table_html(variants, col_map)
+        assert "badge-likely-pathogenic" in html
+
+    def test_dot_value_treated_as_empty(self):
+        gen = self._make_generator()
+        col_map = {"GENE": 0, "VAF": 1}
+        variants = [[".", "."]]
+        html = gen._clinical_summary_table_html(variants, col_map)
+        # dot values are treated as empty, so no gene text should appear
+        assert "<table" in html
+
+    def test_table_has_all_headers(self):
+        gen = self._make_generator()
+        html = gen._clinical_summary_table_html([], {})
+        for header in ("Gene", "HGVSc", "HGVSp", "ClinVar", "CancerVar", "InterVar", "VAF", "DP"):
+            assert header in html
