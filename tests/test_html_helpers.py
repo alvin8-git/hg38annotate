@@ -235,3 +235,35 @@ class TestClinicalSummaryTable:
         html = gen._clinical_summary_table_html([], {})
         for header in ("Gene", "HGVSc", "HGVSp", "ClinVar", "CancerVar", "InterVar", "VAF", "DP"):
             assert header in html
+
+
+class TestVariantDetailCard:
+    def _make_generator(self):
+        from excel_to_html_report import iSeqReportGenerator
+        return iSeqReportGenerator("/dev/null", "/tmp")
+
+    def test_returns_card_html(self):
+        gen = self._make_generator()
+        col_map = {"GENE": 0, "CLNSIG": 1, "CLNREVSTAT": 2, "VAF": 3, "DP": 4}
+        row = ["TP53", "Pathogenic", "reviewed_by_expert_panel", "45%", "200"]
+        html = gen._variant_detail_card_html(0, row, col_map, None)
+        assert 'id="card-0"' in html
+        assert "variant-card" in html
+        assert "TP53" in html
+        assert "toggleCard" in html
+
+    def test_collapsed_card(self):
+        gen = self._make_generator()
+        col_map = {"GENE": 0}
+        row = ["BRCA1"]
+        html = gen._variant_detail_card_html(0, row, col_map, None, collapsed=True)
+        assert "card-body collapsed" in html
+        assert "▶" in html
+
+    def test_expanded_card(self):
+        gen = self._make_generator()
+        col_map = {"GENE": 0}
+        row = ["BRCA1"]
+        html = gen._variant_detail_card_html(0, row, col_map, None, collapsed=False)
+        assert "card-body collapsed" not in html
+        assert "▼" in html

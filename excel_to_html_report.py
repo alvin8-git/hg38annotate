@@ -924,6 +924,86 @@ class iSeqReportGenerator:
   </tbody>
 </table>"""
 
+    def _variant_detail_card_html(self, i, row, col_map, snapshot_dir, collapsed=False):
+        """Build HTML for a single collapsible variant detail card.
+
+        i: 0-based variant index (used for card id and scrollToCard anchor)
+        row: data row (list of cell values)
+        col_map: dict mapping column header strings to column indices
+        snapshot_dir: path to IGV snapshot directory (string or Path); unused
+                      (IGV lookup uses self.snapshots_dir via find_igv_screenshot)
+        collapsed: if True, card-body starts collapsed
+        """
+        from html import escape
+
+        def _get(col_name, default=""):
+            idx = col_map.get(col_name)
+            if idx is None or idx >= len(row):
+                return default
+            val = str(row[idx]).strip()
+            return val if val not in (".", "") else default
+
+        gene   = escape(_get("GENE"))
+        hgvsc  = escape(_get("HGVSc"))
+        hgvsp  = escape(_get("HGVSp"))
+        clnsig = _get("CLNSIG")
+        clnrev = _get("CLNREVSTAT")
+        canvar = _get("CancerVar and Evidence")
+        interv = _get("InterVar_automated")
+        vaf    = escape(_get("VAF"))
+        dp     = escape(_get("DP"))
+        clndn  = escape(_get("CLNDN"))
+
+        gnomad = _get("gnomad41_genome_AF")
+        cosmic = escape(_get("cosmic91"))
+
+        clnsig_badge = _clinvar_sig_badge(clnsig)    if clnsig  else ""
+        stars        = clnrevstat_to_stars(clnrev)    if clnrev  else ""
+        canvar_badge = _cancervar_tier_badge(canvar)  if canvar  else ""
+        interv_badge = _intervar_badge(interv)         if interv  else ""
+
+        # Active ACMG criteria chips
+        active_criteria = self._get_active_acmg_criteria(row, col_map)
+        acmg_chips = " ".join(
+            f'<span class="acmg-chip">{escape(c)}</span>'
+            for c in active_criteria
+        )
+
+        # IGV screenshot — find_igv_screenshot needs sample, chrom, pos
+        igv_html = ""
+        sample_val = _get("SAMPLE")
+        chrom_val  = _get("Chr")
+        pos_val    = _get("Pos")
+        if sample_val and chrom_val and pos_val:
+            igv_path = self.find_igv_screenshot(sample_val, chrom_val, pos_val)
+            if igv_path:
+                rel = Path(igv_path).name
+                igv_html = f'<div class="card-igv"><img src="SnapShots/{escape(rel)}" alt="IGV snapshot"></div>'
+
+        collapsed_class = " collapsed" if collapsed else ""
+        toggle_symbol = "▶" if collapsed else "▼"
+
+        return f"""
+<div class="variant-card" id="card-{i}">
+  <div class="card-header" onclick="toggleCard(this)">
+    <span class="card-gene">{gene}</span>
+    <span class="card-hgvs">{hgvsc}</span>
+    {f'<span class="card-hgvs">· {hgvsp}</span>' if hgvsp else ''}
+    {clnsig_badge}
+    {stars}
+    {canvar_badge}
+    <span class="card-vaf">VAF: {vaf} · DP: {dp}</span>
+    <span class="card-toggle">{toggle_symbol}</span>
+  </div>
+  <div class="card-body{collapsed_class}">
+    {f'<div class="card-row"><span class="card-label">ClinVar disease:</span><span>{clndn}</span></div>' if clndn else ''}
+    {f'<div class="card-row"><span class="card-label">ACMG criteria:</span><span>{acmg_chips}</span></div>' if active_criteria else ''}
+    {f'<div class="card-row"><span class="card-label">gnomAD AF:</span><span>{gnomad}</span></div>' if gnomad else ''}
+    {f'<div class="card-row"><span class="card-label">COSMIC ID:</span><span>{cosmic}</span></div>' if cosmic else ''}
+    {igv_html}
+  </div>
+</div>"""
+
     def find_igv_screenshot(self, sample: str, chrom: str, pos: str) -> Optional[str]:
         if not self.snapshots_dir or not self.snapshots_dir.exists():
             return None
