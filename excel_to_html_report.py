@@ -632,6 +632,38 @@ def get_javascript() -> str:
 function togglePanel(header) {
     header.parentElement.classList.toggle('collapsed');
 }
+
+function switchTab(btn, tabId) {
+    // Deactivate all tabs in the same tab-bar
+    var bar = btn.closest('.tab-bar');
+    bar.querySelectorAll('.tab-btn').forEach(function(b) {
+        b.classList.remove('active');
+    });
+    // Hide all sibling tab-content divs
+    var container = bar.parentElement;
+    container.querySelectorAll('.tab-content').forEach(function(div) {
+        div.style.display = 'none';
+    });
+    // Activate clicked tab and show its content
+    btn.classList.add('active');
+    var panel = container.querySelector('#' + tabId);
+    if (panel) panel.style.display = '';
+}
+
+function toggleCard(header) {
+    var card = header.closest('.variant-card');
+    var body = card.querySelector('.card-body');
+    var toggle = header.querySelector('.card-toggle');
+    body.classList.toggle('collapsed');
+    if (toggle) {
+        toggle.textContent = body.classList.contains('collapsed') ? '▶' : '▼';
+    }
+}
+
+function scrollToCard(cardId) {
+    var el = document.getElementById(cardId);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 """
 
 
