@@ -954,7 +954,7 @@ class iSeqReportGenerator:
         dp     = escape(_get("DP"))
         clndn  = escape(_get("CLNDN"))
 
-        gnomad = _get("gnomad41_genome_AF")
+        gnomad  = escape(_get("gnomad41_genome_AF"))
         cosmic = escape(_get("cosmic91"))
 
         clnsig_badge = _clinvar_sig_badge(clnsig)    if clnsig  else ""
