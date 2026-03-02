@@ -22,8 +22,7 @@ class TestClnrevstatToStars:
 
     def test_single_submitter(self):
         result = clnrevstat_to_stars("criteria_provided,_single_submitter")
-        assert "★" in result
-        assert "★★" not in result
+        assert result.count("★") == 1
 
     def test_no_assertion_criteria(self):
         result = clnrevstat_to_stars("no_assertion_criteria_provided")
@@ -109,3 +108,11 @@ class TestIntervarBadge:
 
     def test_none_returns_empty(self):
         assert _intervar_badge(None) == ""
+
+    def test_benign(self):
+        result = _intervar_badge("Benign")
+        assert "badge-benign" in result
+
+    def test_likely_benign(self):
+        result = _intervar_badge("Likely benign")
+        assert "badge-likely-benign" in result

@@ -540,11 +540,13 @@ def clnrevstat_to_stars(val: str) -> str:
     stars = _CLNREVSTAT_STARS.get(val, "")
     if not stars:
         return ""
-    return f'<span class="clnrev-stars" title="{val}">{stars}</span>'
+    return f'<span class="clnrev-stars" title="{escape(val)}">{stars}</span>'
 
 
 def _clinvar_sig_badge(sig: str) -> str:
-    """Return a coloured ClinVar significance badge."""
+    """Return a coloured ClinVar significance badge.
+    Expected input: ANNOVAR ClinVar format with underscores (e.g. 'Likely_pathogenic').
+    """
     sig = (sig or "").strip()
     if not sig or sig in (".", "not_provided"):
         return ""
@@ -561,11 +563,13 @@ def _clinvar_sig_badge(sig: str) -> str:
         css = "badge-vus"
     else:
         css = "badge-other"
-    return f'<span class="clnsig-badge {css}">{sig}</span>'
+    return f'<span class="clnsig-badge {css}">{escape(sig)}</span>'
 
 
 def _intervar_badge(intervar: str) -> str:
-    """Return a coloured InterVar classification badge."""
+    """Return a coloured InterVar classification badge.
+    Expected input: InterVar format with spaces (e.g. 'Likely pathogenic').
+    """
     intervar = (intervar or "").strip()
     if not intervar or intervar in (".", "Unknown"):
         return ""
@@ -582,7 +586,7 @@ def _intervar_badge(intervar: str) -> str:
         css = "badge-vus"
     else:
         css = "badge-other"
-    return f'<span class="intervar-badge {css}">{intervar}</span>'
+    return f'<span class="intervar-badge {css}">{escape(intervar)}</span>'
 
 
 class iSeqReportGenerator:
