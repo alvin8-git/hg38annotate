@@ -1219,6 +1219,22 @@ class iSeqReportGenerator:
         row_indices = self.samples[sample_name]
         safe_sample = re.sub(r'[^\w\-_]', '_', sample_name)
 
+        # Build 0-based col_map for the clinical summary / card helpers.
+        # self.col_idx stores 1-based indices; helpers expect 0-based direct row access.
+        col_map_0 = {name: (idx - 1) for name, idx in self.col_idx.items()}
+
+        # Collect raw row data lists for the clinical helpers.
+        variants = [self.rows[idx] for idx in row_indices]
+
+        # Build Clinical Summary tab content.
+        n_variants = len(variants)
+        clinical_table = self._clinical_summary_table_html(variants, col_map_0)
+        collapsed_cards = n_variants > 3
+        cards_html = "\n".join(
+            self._variant_detail_card_html(i, row, col_map_0, self.snapshots_dir, collapsed=collapsed_cards)
+            for i, row in enumerate(variants)
+        )
+
         html = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1226,6 +1242,7 @@ class iSeqReportGenerator:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Variant Report - {escape(sample_name)}</title>
     <style>{get_css_styles()}</style>
+    <script>{get_javascript()}</script>
 </head>
 <body>
     <div class="container">
@@ -1256,6 +1273,18 @@ class iSeqReportGenerator:
                 <div class="stat-label">Genes Affected</div>
             </div>
         </div>
+
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="switchTab(this, \'tab-clinical\')">Clinical Summary</button>
+          <button class="tab-btn" onclick="switchTab(this, \'tab-full\')">Full Annotation</button>
+        </div>
+
+        <div id="tab-clinical" class="tab-content">
+          {clinical_table}
+          {cards_html}
+        </div>
+
+        <div id="tab-full" class="tab-content" style="display:none">
 
         <table class="variant-table">
             <thead>
@@ -1315,6 +1344,7 @@ class iSeqReportGenerator:
         html += '''
             </tbody>
         </table>
+        </div><!-- end tab-full -->
     </div>
 </body>
 </html>'''
