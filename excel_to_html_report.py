@@ -624,6 +624,37 @@ body {
     border-radius: 4px;
     margin-top: 6px;
 }
+
+/* ── Expandable detail rows (clinical table) ──────────────────────── */
+.clinical-table .toggle-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.8em;
+    color: #6c757d;
+    padding: 0 4px;
+}
+.detail-row.collapsed { display: none; }
+.detail-row > td {
+    padding: 0;
+    border-bottom: 2px solid #dee2e6;
+}
+.detail-content {
+    padding: 12px 16px;
+    background: #f8f9fa;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: flex-start;
+}
+.detail-fields { flex: 1; min-width: 260px; }
+.detail-igv { flex: 0 0 auto; }
+.detail-igv img {
+    max-width: 480px;
+    width: 100%;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
 """
 
 
@@ -663,6 +694,12 @@ function toggleCard(header) {
 function scrollToCard(cardId) {
     var el = document.getElementById(cardId);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function toggleDetailRow(btn) {
+    var detailRow = btn.closest('tr').nextElementSibling;
+    detailRow.classList.toggle('collapsed');
+    btn.textContent = detailRow.classList.contains('collapsed') ? '▶' : '▼';
 }
 """
 
@@ -862,9 +899,14 @@ class iSeqReportGenerator:
                     active.append(criterion)
         return active
 
-    def _clinical_summary_table_html(self, variants, col_map):
-        """Build compact clinical summary table HTML — one row per variant."""
+    def _clinical_summary_table_html(self, variants, col_map, sample_html_dir=None):
+        """Build expandable clinical summary table — one summary row + one detail row per variant.
+
+        sample_html_dir: Path or str of the directory where the sample HTML file will be saved,
+                         used to compute correct relative paths for IGV screenshots.
+        """
         from html import escape
+        import os as _os
 
         def _get(row, col_name, default=""):
             idx = col_map.get(col_name)
@@ -884,14 +926,48 @@ class iSeqReportGenerator:
             interv = _get(row, "InterVar_automated")
             vaf    = escape(_get(row, "VAF"))
             dp     = escape(_get(row, "DP"))
+            clndn  = escape(_get(row, "CLNDN"))
+            gnomad = escape(_get(row, "gnomad41_genome_AF"))
+            cosmic = escape(_get(row, "cosmic91"))
 
-            clnsig_badge = _clinvar_sig_badge(clnsig)  if clnsig  else ""
-            stars        = clnrevstat_to_stars(clnrev)  if clnrev  else ""
-            canvar_badge = _cancervar_tier_badge(canvar) if canvar else ""
+            clnsig_badge = _clinvar_sig_badge(clnsig)   if clnsig  else ""
+            stars        = clnrevstat_to_stars(clnrev)   if clnrev  else ""
+            canvar_badge = _cancervar_tier_badge(canvar) if canvar  else ""
             interv_badge = _intervar_badge(interv)       if interv  else ""
 
+            active_criteria = self._get_active_acmg_criteria(row, col_map)
+            acmg_chips = " ".join(
+                f'<span class="acmg-chip">{escape(c)}</span>'
+                for c in active_criteria
+            )
+
+            # IGV screenshot — compute path relative to the sample HTML file directory
+            igv_html = ""
+            sample_val = _get(row, "SAMPLE")
+            chrom_val  = _get(row, "Chr")
+            pos_val    = _get(row, "Pos")
+            if sample_val and chrom_val and pos_val:
+                igv_path = self.find_igv_screenshot(sample_val, chrom_val, pos_val)
+                if igv_path and sample_html_dir:
+                    rel_igv = _os.path.relpath(igv_path, str(sample_html_dir))
+                    igv_html = f'<div class="detail-igv"><img src="{escape(rel_igv)}" alt="IGV snapshot"></div>'
+
+            # Build detail fields (left side of detail content)
+            detail_rows = []
+            if clndn:
+                detail_rows.append(f'<div class="card-row"><span class="card-label">ClinVar disease:</span><span>{clndn}</span></div>')
+            if active_criteria:
+                detail_rows.append(f'<div class="card-row"><span class="card-label">ACMG criteria:</span><span>{acmg_chips}</span></div>')
+            if gnomad:
+                detail_rows.append(f'<div class="card-row"><span class="card-label">gnomAD AF:</span><span>{gnomad}</span></div>')
+            if cosmic:
+                detail_rows.append(f'<div class="card-row"><span class="card-label">COSMIC ID:</span><span>{cosmic}</span></div>')
+            detail_fields_html = "\n".join(detail_rows)
+
+            # Summary row (always visible) + detail row (toggle)
             rows_html.append(f"""
-        <tr onclick="scrollToCard('card-{i}')" style="cursor:pointer">
+        <tr class="summary-row">
+            <td><button class="toggle-btn" onclick="toggleDetailRow(this)">▶</button></td>
             <td>{gene}</td>
             <td style="font-family:monospace;font-size:0.85em">{hgvsc}</td>
             <td>{hgvsp}</td>
@@ -901,6 +977,14 @@ class iSeqReportGenerator:
             <td>{interv_badge or escape(interv)}</td>
             <td>{vaf}</td>
             <td>{dp}</td>
+        </tr>
+        <tr class="detail-row collapsed">
+            <td colspan="10">
+              <div class="detail-content">
+                <div class="detail-fields">{detail_fields_html}</div>
+                {igv_html}
+              </div>
+            </td>
         </tr>""")
 
         rows_str = "\n".join(rows_html)
@@ -908,6 +992,7 @@ class iSeqReportGenerator:
 <table class="clinical-table">
   <thead>
     <tr>
+      <th style="width:2em"></th>
       <th>Gene</th>
       <th>HGVSc</th>
       <th>HGVSp</th>
@@ -1227,13 +1312,10 @@ class iSeqReportGenerator:
         variants = [self.rows[idx] for idx in row_indices]
 
         # Build Clinical Summary tab content.
-        n_variants = len(variants)
-        clinical_table = self._clinical_summary_table_html(variants, col_map_0)
-        collapsed_cards = n_variants > 3
-        cards_html = "\n".join(
-            self._variant_detail_card_html(i, row, col_map_0, self.snapshots_dir, collapsed=collapsed_cards)
-            for i, row in enumerate(variants)
-        )
+        # sample_html_dir is the directory that will contain the sample HTML file;
+        # used to compute correct relative paths to IGV snapshots.
+        sample_html_dir = self.output_dir / "samples"
+        clinical_table = self._clinical_summary_table_html(variants, col_map_0, sample_html_dir)
 
         html = f'''<!DOCTYPE html>
 <html lang="en">
@@ -1281,7 +1363,6 @@ class iSeqReportGenerator:
 
         <div id="tab-clinical" class="tab-content">
           {clinical_table}
-          {cards_html}
         </div>
 
         <div id="tab-full" class="tab-content" style="display:none">
