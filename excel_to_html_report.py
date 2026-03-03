@@ -1456,6 +1456,11 @@ class iSeqReportGenerator:
 </html>'''
         return html
 
+    def generate(self):
+        """End-to-end entry point: load Excel data then write all HTML reports."""
+        self.load_excel()
+        self.generate_reports()
+
     def generate_reports(self):
         self.output_dir.mkdir(parents=True, exist_ok=True)
         samples_dir = self.output_dir / "samples"
