@@ -2,26 +2,6 @@
 
 ## Pending
 
-### Clinical HTML report — Tasks 7 & 8 remaining (IN PROGRESS)
-Plan: `docs/plans/2026-03-02-clinical-html-report-plan.md`
-Commits so far: helpers, CSS, JS, _get_active_acmg_criteria, _clinical_summary_table_html, _variant_detail_card_html
-
-**Task 7 — Modify `generate_sample_page()` to add tab structure:**
-- Wrap existing content in `<div id="tab-full" class="tab-content">` (hidden by default)
-- Prepend tab bar: `<div class="tab-bar">` with two `.tab-btn` buttons
-- Prepend Clinical Summary content: `<div id="tab-clinical" class="tab-content">` containing:
-  - `self._clinical_summary_table_html(variants, col_map)`
-  - Loop calling `self._variant_detail_card_html(i, row, col_map, snapshot_dir, collapsed=(len>3))`
-- Tab bar calls `switchTab(this, 'tab-clinical')` and `switchTab(this, 'tab-full')`
-- Clinical tab is active by default; Full Annotation tab hidden (display:none) by default
-- `variants` = filtered rows from the Filter sheet (already iterated in existing code)
-- `col_map` = already built in the existing method
-- `snapshot_dir` = already available as `self.snapshots_dir`
-
-**Task 8 — Push + update TODO:**
-- `git push`
-- Mark this item complete in todo.md
-
 ### COSMIC Cancer Gene Census annotation
 - Add static lookup table (~700 genes) to Databases with oncogene/TSG role + tier 1/2
 - Add new column `CGC_Role` (oncogene/TSG/both) and `CGC_Tier` to annotation output
@@ -52,6 +32,13 @@ Commits so far: helpers, CSS, JS, _get_active_acmg_criteria, _clinical_summary_t
 - Pipeline works despite the WARN (annovar-fast finds databases via other path), but clean dep check requires the mount
 
 ## Completed
+
+- [x] Clinical HTML report — tabbed Clinical Summary / Full Annotation UI in `{sample}.html` (2026-03-03)
+  - Badge helpers: `clnrevstat_to_stars`, `_clinvar_sig_badge`, `_intervar_badge`
+  - CSS for tab bar, badges, star ratings, variant cards
+  - JS: `switchTab`, `toggleCard`, `scrollToCard`
+  - Methods: `_get_active_acmg_criteria`, `_clinical_summary_table_html`, `_variant_detail_card_html`
+  - `generate_sample_page()` modified with tab structure; 45 unit tests
 
 - [x] IGV offline fix — `entrypoint.sh` writes `prefs.properties` with `DEFAULT_GENOME_KEY` pointing to local FASTA; prevents startup online genome request
 - [x] IGV `ConcurrentModificationException` fix — `sleep 2000` before each snapshot in batch script
