@@ -14,12 +14,6 @@
 - Requires manual upload via GitHub web UI or `gh release upload` with a token
 - Both files are in `.gitignore`; distributed via GitHub Releases only
 
-### IGV --force skips snapshots after annotation re-run
-- When `--force` triggers full pipeline, annotation moves `*.Filter.txt` to `annotation/`
-  before IGV stage runs → IGV stage reports "No filter files found"
-- `create_output` copies files to `output/` but IGV reads from VCF dir
-- Investigate: does IGV stage read from `output/` or VCF dir? Fix ordering or copy step.
-
 ### Verify IGV offline fix on zbolt-01 after rebuild
 - Requires `docker build` to pick up `entrypoint.sh` (IGV prefs) + `make_IGV_snapshots.py` (sleep 2000) changes
 - Expected: no `hg38.json` / `ncbiRefSeqSelect.txt.gz` network errors in IGV log
@@ -32,6 +26,8 @@
 - Pipeline works despite the WARN (annovar-fast finds databases via other path), but clean dep check requires the mount
 
 ## Completed
+
+- [x] IGV `--force` skips snapshots — `rm -rf ../output/annotation` before `mv` in `create_output` so re-runs replace stale files (commit 462ae88)
 
 - [x] Clinical HTML report — tabbed Clinical Summary / Full Annotation UI in `{sample}.html` (2026-03-03)
   - Badge helpers: `clnrevstat_to_stars`, `_clinvar_sig_badge`, `_intervar_badge`
