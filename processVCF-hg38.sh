@@ -139,10 +139,12 @@ create_output() {
         mkdir ../output
     fi
 
-    # Copy xlsx files and move annotation directory
+    # Copy xlsx files and move annotation directory.
+    # Remove any stale annotation dir first so mv succeeds on --force re-runs.
     if [ -d ./annotation ]; then
         log_info "Copying files to output..."
         cp ./annotation/*.xlsx ../output/ 2>/dev/null || true
+        rm -rf ../output/annotation 2>/dev/null || true
         mv ./annotation ../output/ 2>/dev/null || true
     fi
 
