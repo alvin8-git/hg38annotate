@@ -120,6 +120,16 @@ Fix: always write a `samples/{sample}.html` page even for 0-variant samples, sho
   hyperlinks COSM\d+ IDs to `cancer.sanger.ac.uk/cosmic/mutation/overview?id=<N>`
 - [x] Link ClinVar IDs to ClinVar web URLs — CLNALLELEID values in `_acmg_section_html()`
   linked to `ncbi.nlm.nih.gov/clinvar/variation/<id>/`
+- [x] UI/UX redesign — Clean Slate design system (12-token palette), white header, underline
+  tab bar, unified badge pills, colour-coded ACMG chips, neutral Full Annotation panel headers
+  with per-section left-border accents, Summary page tier indicators (data-tier on cards)
+- [x] Fix IGV images not loading over HTTP — copy SnapShots/ into html_reports/ at generation
+  time so relative paths stay within the served directory root
+- [x] Clinical summary detail row redesign — stacked layout (gnomAD pill, ACMG chips, ClinVar
+  disease pills, COSMIC tissue chips) with IGV on the right; no horizontal scroll
+- [x] CLNDN/CLNDISDB/CLNREVSTAT rendered as pill chips in Full Annotation ACMG panel — first
+  6 (CLNDN) / 5 (CLNDISDB) entries visible, +N more toggle for overflow; CLNREVSTAT green pills
+- [x] COSMIC91 tissue occurrence chips in Full Annotation — top 5 tissues by count with +N more
 
 ### HTML Report
 - [x] Add GenomeAsia `AF_SEA`, `AF_NEA`, `AF_SAS` to Population Freq Database section —

@@ -2,6 +2,44 @@
 
 ## Unreleased (main)
 
+### 2026-03 — Clinical HTML report UI/UX redesign
+
+**`excel_to_html_report.py`**
+
+- **Clean Slate design system** — replaced 61 hex colours with a 12-token CSS palette
+  (`--color-bg`, `--color-surface`, `--color-accent`, `--color-path`, `--color-vus`, etc.).
+- **Page header** — replaced dark gradient with white header + 4 px left-border accent line.
+- **Tab bar** — underline active style (3 px accent blue border-bottom) replaces pill tabs.
+- **Clinical summary table** — increased padding; muted uppercase column headers; zebra stripe.
+- **Badge system** — unified `.clnsig-badge`, `.intervar-badge`, `.cancervar-badge` to pill
+  shape; colour pairs via `.badge-pathogenic / -likely-pathogenic / -benign / -vus` tokens.
+- **Full Annotation panels** — replaced 7 gradient header themes with flat `--color-surface-2`
+  + per-section left-border colour (blue / purple / cyan / teal / green).
+- **Summary page tier indicators** — `generate_summary_page()` scans sample HTML for
+  `badge-pathogenic` / `badge-likely-pathogenic` and emits `data-tier="1"/"2"/"3"` on sample
+  cards; CSS `border-left` reflects highest tier.
+- **IGV snapshots copied into html_reports/** — `generate_reports()` copies `SnapShots/` into
+  `html_reports/SnapShots/` so relative paths resolve correctly when reports are served via
+  HTTP (previously `../../SnapShots/` traversed above the web-server root).
+- **Clinical summary detail row — stacked layout** — gnomAD AF stat pill → colour-coded ACMG
+  chips → ClinVar disease pills → COSMIC tissue chips stacked vertically; IGV on the right.
+- **ACMG chips colour-coded** — `ACMG_CRITERION_CLASS` lookup emits `pvs/ps/pm/pp/ba/bs/bp`
+  CSS modifier on each chip in both the clinical summary and Full Annotation panels.
+- **ClinVar disease pills** — `_clndn_pills_html()`: pipe-separated CLNDN diseases rendered as
+  `flex-wrap` pill chips; first 8 visible, `+N more` toggle for overflow.
+- **COSMIC tissue chips** — `_cosmic_html()`: occurrence string parsed and sorted by count; top
+  5 tissues shown as amber chips, `+N tissues` toggle for rest; used in clinical summary and
+  Full Annotation data grid.
+- **Full Annotation pipe-separated fields** — `_format_data_value()` now renders:
+  `CLNDN` (first 6 disease pills + toggle), `CLNDISDB` (first 5 monospace pills + toggle),
+  `CLNREVSTAT` (green status pills), `cosmic91` (tissue chips, label suppressed).
+- **`_acmg_section_html()` ClinVar rendering** — replaced `escape(value)` fallback with
+  `_format_data_value()` so CLNDN/CLNDISDB/CLNREVSTAT in the ACMG panel gain pill treatment.
+- **Font unification** — `data-value` standardised to `0.875rem`; `data-value.monospace` no
+  longer overrides font size; HGVSc column uses `.col-hgvsc` CSS class instead of inline style.
+
+---
+
 ### 2026-02 — IGV 2.19.7 upgrade; offline genome loading; Java 21; remove Java 8
 
 **`Dockerfile`**

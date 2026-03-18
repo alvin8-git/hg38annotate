@@ -99,6 +99,12 @@ ACMG_CRITERIA = {
     "Supporting Benign": [("BP1", "BP1", "bp"), ("BP2", "BP2", "bp"), ("BP3", "BP3", "bp"),
                           ("BP4", "BP4", "bp"), ("BP5", "BP5", "bp"), ("BP6", "BP6", "bp"), ("BP7", "BP7", "bp")],
 }
+# Flat lookup: criterion code → CSS modifier class
+ACMG_CRITERION_CLASS = {
+    criterion: css_class
+    for criteria_list in ACMG_CRITERIA.values()
+    for criterion, _label, css_class in criteria_list
+}
 
 # ClinVar column header names
 CLINVAR_COL_NAMES = ["CLNALLELEID", "CLNDN", "CLNDISDB", "CLNREVSTAT", "CLNSIG"]
@@ -131,6 +137,20 @@ PREDICTION_SCORE_NAMES = [
 def get_css_styles() -> str:
     return """
 :root {
+    --color-bg:         #f8fafc;
+    --color-surface:    #ffffff;
+    --color-surface-2:  #f1f5f9;
+    --color-border:     #e2e8f0;
+    --color-text:       #0f172a;
+    --color-text-2:     #475569;
+    --color-text-3:     #94a3b8;
+    --color-accent:     #2563eb;
+    --color-accent-bg:  #eff6ff;
+    --color-path:       #dc2626;
+    --color-lpath:      #ea580c;
+    --color-benign:     #16a34a;
+    --color-vus:        #64748b;
+    /* legacy aliases kept for backward compat */
     --primary-color: #2c3e50;
     --secondary-color: #3498db;
     --accent-color: #e74c3c;
@@ -169,15 +189,15 @@ body {
 
 /* Header */
 .header {
-    background: linear-gradient(135deg, var(--primary-color) 0%, #34495e 100%);
-    color: white;
-    padding: 20px 30px;
+    background: #ffffff;
+    border-bottom: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-accent);
+    padding: 20px 32px;
     margin-bottom: 20px;
     border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
-.header h1 { margin: 0 0 10px 0; font-size: 1.8rem; font-weight: 600; }
-.header .subtitle { opacity: 0.9; font-size: 0.95rem; }
+.header h1 { margin: 0 0 4px 0; font-size: 1.75rem; font-weight: 700; color: var(--color-text); }
+.header .subtitle { color: var(--color-text-2); font-size: 0.95rem; margin-top: 4px; }
 
 /* Breadcrumb */
 .breadcrumb {
@@ -249,9 +269,9 @@ body {
     letter-spacing: 0.5px;
     margin-bottom: 4px;
 }
-.data-value { font-size: 0.95rem; color: #212529; word-break: break-word; }
+.data-value { font-size: 0.875rem; color: #212529; word-break: break-word; }
 .data-value.large { font-size: 1.2rem; font-weight: 600; }
-.data-value.monospace { font-family: 'Monaco','Menlo',monospace; font-size: 0.9rem; }
+.data-value.monospace { font-family: 'Monaco','Menlo',monospace; }
 
 /* Population Frequency Bars */
 .freq-bar-container {
@@ -269,15 +289,16 @@ body {
     display: inline-flex; align-items: center;
     padding: 6px 12px; border-radius: 20px;
     font-size: 0.8rem; font-weight: 600;
+    background: #eff6ff; color: #1d4ed8;   /* default — overridden by type classes */
 }
 .acmg-chip.inactive { background: #e9ecef; color: #adb5bd; }
 .acmg-chip.pvs { background: #721c24; color: white; }
-.acmg-chip.ps { background: var(--pathogenic-color); color: white; }
-.acmg-chip.pm { background: var(--likely-pathogenic-color); color: white; }
-.acmg-chip.pp { background: #f8d7da; color: #721c24; }
-.acmg-chip.ba { background: #155724; color: white; }
-.acmg-chip.bs { background: var(--benign-color); color: white; }
-.acmg-chip.bp { background: #d4edda; color: #155724; }
+.acmg-chip.ps  { background: var(--pathogenic-color); color: white; }
+.acmg-chip.pm  { background: var(--likely-pathogenic-color); color: white; }
+.acmg-chip.pp  { background: #f8d7da; color: #721c24; }
+.acmg-chip.ba  { background: #155724; color: white; }
+.acmg-chip.bs  { background: var(--benign-color); color: white; }
+.acmg-chip.bp  { background: #d4edda; color: #155724; }
 
 /* Prediction Score Table */
 .score-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
@@ -306,54 +327,27 @@ body {
 }
 
 /* Panel Color Themes */
-.panel.panel-basic { border-left: 4px solid #3498db; }
-.panel.panel-basic .panel-header { background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; }
-.panel.panel-basic .panel-header:hover { background: linear-gradient(135deg, #2980b9 0%, #1f6dad 100%); }
-.panel.panel-basic .panel-title { color: white; font-weight: 700; }
-.panel.panel-basic .panel-toggle { color: rgba(255,255,255,0.8); }
-.panel.panel-basic .panel-content { background: linear-gradient(180deg, #ebf5fb 0%, #d6eaf8 100%); }
-
-.panel.panel-comparison { border-left: 4px solid #27ae60; }
-.panel.panel-comparison .panel-header { background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%); color: white; }
-.panel.panel-comparison .panel-header:hover { background: linear-gradient(135deg, #1e8449 0%, #196f3d 100%); }
-.panel.panel-comparison .panel-title { color: white; font-weight: 700; }
-.panel.panel-comparison .panel-toggle { color: rgba(255,255,255,0.8); }
-.panel.panel-comparison .panel-content { background: linear-gradient(180deg, #e9f7ef 0%, #d4efdf 100%); }
-
+.panel-header {
+    background: var(--color-surface-2);
+    border-left: 3px solid var(--color-border);
+    color: var(--color-text);
+    padding: 10px 16px;
+}
+.panel.panel-basic      { border-left: 4px solid #2563eb; }
+.panel.panel-basic      .panel-header { border-left-color: #2563eb; }
+.panel.panel-population { border-left: 4px solid #7c3aed; }
+.panel.panel-population .panel-header { border-left-color: #7c3aed; }
+.panel.panel-acmg       { border-left: 4px solid #0891b2; }
+.panel.panel-acmg       .panel-header { border-left-color: #0891b2; }
+.panel.panel-computational { border-left: 4px solid #0d9488; }
+.panel.panel-computational .panel-header { border-left-color: #0d9488; }
+.panel.panel-comparison { border-left: 4px solid #16a34a; }
+.panel.panel-comparison .panel-header { border-left-color: #16a34a; }
 .panel.panel-additional { border-left: 4px solid #546e7a; }
-.panel.panel-additional .panel-header { background: linear-gradient(135deg, #607d8b 0%, #546e7a 100%); color: white; }
-.panel.panel-additional .panel-header:hover { background: linear-gradient(135deg, #546e7a 0%, #455a64 100%); }
-.panel.panel-additional .panel-title { color: white; font-weight: 700; }
-.panel.panel-additional .panel-toggle { color: rgba(255,255,255,0.8); }
-.panel.panel-additional .panel-content { background: linear-gradient(180deg, #eceff1 0%, #cfd8dc 100%); }
-
-.panel.panel-population { border-left: 4px solid #5c6bc0; }
-.panel.panel-population .panel-header { background: linear-gradient(135deg, #5c6bc0 0%, #3f51b5 100%); color: white; }
-.panel.panel-population .panel-header:hover { background: linear-gradient(135deg, #3f51b5 0%, #303f9f 100%); }
-.panel.panel-population .panel-title { color: white; font-weight: 700; }
-.panel.panel-population .panel-toggle { color: rgba(255,255,255,0.8); }
-.panel.panel-population .panel-content { background: linear-gradient(180deg, #e8eaf6 0%, #c5cae9 100%); }
-
-.panel.panel-acmg { border-left: 4px solid #8e24aa; }
-.panel.panel-acmg .panel-header { background: linear-gradient(135deg, #ab47bc 0%, #8e24aa 100%); color: white; }
-.panel.panel-acmg .panel-header:hover { background: linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%); }
-.panel.panel-acmg .panel-title { color: white; font-weight: 700; }
-.panel.panel-acmg .panel-toggle { color: rgba(255,255,255,0.8); }
-.panel.panel-acmg .panel-content { background: linear-gradient(180deg, #f3e5f5 0%, #e1bee7 100%); }
-
-.panel.panel-computational { border-left: 4px solid #e67e22; }
-.panel.panel-computational .panel-header { background: linear-gradient(135deg, #e67e22 0%, #ca6f1e 100%); color: white; }
-.panel.panel-computational .panel-header:hover { background: linear-gradient(135deg, #ca6f1e 0%, #b9770e 100%); }
-.panel.panel-computational .panel-title { color: white; font-weight: 700; }
-.panel.panel-computational .panel-toggle { color: rgba(255,255,255,0.8); }
-.panel.panel-computational .panel-content { background: linear-gradient(180deg, #fef5e7 0%, #fdebd0 100%); }
-
-.panel.panel-igv { border-left: 4px solid #8e44ad; }
-.panel.panel-igv .panel-header { background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); color: white; }
-.panel.panel-igv .panel-header:hover { background: linear-gradient(135deg, #8e44ad 0%, #7d3c98 100%); }
-.panel.panel-igv .panel-title { color: white; font-weight: 700; }
-.panel.panel-igv .panel-toggle { color: rgba(255,255,255,0.8); }
-.panel.panel-igv .panel-content { background: linear-gradient(180deg, #f5eef8 0%, #e8daef 100%); text-align: center; }
+.panel.panel-additional .panel-header { border-left-color: #546e7a; }
+.panel.panel-igv        { border-left: 4px solid #8e44ad; }
+.panel.panel-igv        .panel-header { border-left-color: #8e44ad; }
+.panel.panel-igv .panel-content { text-align: center; }
 .panel.panel-igv .igv-image {
     max-width: 100%; height: auto; border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin: 10px 0;
@@ -361,6 +355,8 @@ body {
 .panel.panel-igv .igv-no-image {
     color: var(--text-muted); font-style: italic; padding: 40px 20px;
 }
+.panel-title { font-size: 1.1rem; font-weight: 600; color: var(--color-text); margin: 0; }
+.panel-toggle { font-size: 1.2rem; color: var(--color-text-3); transition: transform 0.3s; }
 
 /* Dashboard Stats */
 .dashboard-stats {
@@ -422,6 +418,9 @@ body {
     cursor: pointer; text-decoration: none; color: inherit; display: block;
 }
 .sample-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+.sample-card[data-tier="1"] { border-left: 4px solid #dc2626; }
+.sample-card[data-tier="2"] { border-left: 4px solid #ea580c; }
+.sample-card[data-tier="3"] { border-left: 4px solid var(--color-border); }
 .sample-card-header {
     background: linear-gradient(135deg, var(--primary-color) 0%, #34495e 100%);
     color: white; padding: 20px;
@@ -482,28 +481,28 @@ body {
 /* ── Tab bar ─────────────────────────────────────────────────────── */
 .tab-bar {
     display: flex;
-    gap: 4px;
+    gap: 0;
     margin: 0 0 16px 0;
-    border-bottom: 2px solid #dee2e6;
+    border-bottom: 2px solid var(--color-border);
     padding-bottom: 0;
 }
 .tab-btn {
-    padding: 8px 20px;
-    border: 1px solid transparent;
-    border-bottom: none;
-    border-radius: 4px 4px 0 0;
-    background: #f8f9fa;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    padding: 10px 20px;
     cursor: pointer;
     font-size: 0.95em;
-    color: #495057;
+    color: var(--color-text-2);
+    font-weight: 500;
     position: relative;
-    bottom: -2px;
 }
-.tab-btn:hover { background: #e9ecef; }
+.tab-btn:hover { color: var(--color-text); background: var(--color-surface-2); }
 .tab-btn.active {
-    background: #fff;
-    border-color: #dee2e6;
-    color: #212529;
+    color: var(--color-accent);
+    border-bottom-color: var(--color-accent);
+    background: var(--color-accent-bg);
     font-weight: 600;
 }
 
@@ -515,34 +514,42 @@ body {
     margin-bottom: 24px;
 }
 .clinical-table th {
-    background: #f1f3f5;
-    padding: 8px 10px;
+    background: var(--color-surface-2);
+    color: var(--color-text-3);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 10px 12px;
     text-align: left;
-    border-bottom: 2px solid #dee2e6;
+    border-bottom: 2px solid var(--color-border);
     white-space: nowrap;
 }
 .clinical-table td {
-    padding: 7px 10px;
+    padding: 10px 12px;
     border-bottom: 1px solid #e9ecef;
     vertical-align: middle;
 }
+.clinical-table tbody tr.summary-row:nth-child(4n+1) { background: #fafbfc; }
+.clinical-table td.col-hgvsc { font-family: 'Monaco','Menlo',monospace; }
 .clinical-table tr:hover { background: #f8f9fa; cursor: pointer; }
 
 /* ── ClinVar / InterVar badges ────────────────────────────────────── */
-.clnsig-badge, .intervar-badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-size: 0.82em;
+.clnsig-badge, .intervar-badge, .cancervar-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.78rem;
     font-weight: 600;
     white-space: nowrap;
+    letter-spacing: 0.2px;
 }
-.badge-pathogenic        { background: #f8d7da; color: #842029; }
-.badge-likely-pathogenic { background: #ffe5d0; color: #7d3900; }
-.badge-benign            { background: #d1e7dd; color: #0f5132; }
-.badge-likely-benign     { background: #d3f4ed; color: #0a4a3a; }
-.badge-vus               { background: #e2e3e5; color: #41464b; }
-.badge-other             { background: #e2e3e5; color: #41464b; }
+.badge-pathogenic        { background: #fee2e2; color: #b91c1c; }
+.badge-likely-pathogenic { background: #ffedd5; color: #c2410c; }
+.badge-benign            { background: #dcfce7; color: #15803d; }
+.badge-likely-benign     { background: #d1fae5; color: #065f46; }
+.badge-vus               { background: #f1f5f9; color: var(--color-text-2); }
+.badge-other             { background: #f1f5f9; color: var(--color-text-2); }
 
 /* ── CLNREVSTAT star rating ───────────────────────────────────────── */
 .clnrev-stars {
@@ -603,20 +610,33 @@ body {
     align-items: flex-start;
 }
 .card-label {
-    font-weight: 600;
-    min-width: 160px;
-    color: #495057;
+    color: var(--color-text-2);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    min-width: 140px;
     flex-shrink: 0;
 }
-.card-body .acmg-chip {
-    display: inline-block;
-    padding: 1px 6px;
-    margin: 1px 2px;
-    border-radius: 3px;
-    font-size: 0.8em;
-    font-weight: 700;
-    background: #cfe2ff;
-    color: #084298;
+/* Size-only overrides for compact contexts — colours come from type classes above */
+.card-body .acmg-chip,
+.detail-stack .acmg-chip {
+    padding: 1px 7px; border-radius: 12px;
+    font-size: 0.75rem; display: inline-block; margin: 1px 2px;
+}
+/* Stat pill for single values (gnomAD etc.) */
+.stat-pill {
+    display: inline-block; background: var(--color-surface-2);
+    border: 1px solid var(--color-border); color: var(--color-text);
+    padding: 1px 9px; border-radius: 12px; font-size: 0.82rem; font-family: 'Monaco','Menlo',monospace;
+}
+/* Review status / DB pills */
+.revstat-pill {
+    background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0;
+    padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; display: inline-block;
+}
+.disdb-pill {
+    background: #f8fafc; color: var(--color-text-2); border: 1px solid var(--color-border);
+    padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-family: 'Monaco','Menlo',monospace; display: inline-block;
 }
 .card-igv img {
     max-width: 100%;
@@ -637,24 +657,59 @@ body {
 .detail-row.collapsed { display: none; }
 .detail-row > td {
     padding: 0;
-    border-bottom: 2px solid #dee2e6;
+    border-bottom: 2px solid var(--color-border);
 }
 .detail-content {
-    padding: 12px 16px;
-    background: #f8f9fa;
+    background: #f8fafc;
+    border-left: 3px solid var(--color-accent);
+    padding: 16px 20px;
     display: flex;
     flex-wrap: wrap;
     gap: 20px;
     align-items: flex-start;
 }
-.detail-fields { flex: 1; min-width: 260px; }
+.detail-top {
+    display: flex; flex-wrap: wrap; gap: 20px; align-items: center;
+    margin-bottom: 12px; padding-bottom: 12px;
+    border-bottom: 1px solid var(--color-border);
+}
+.detail-top .card-row { margin-bottom: 0; }
+.detail-bottom { display: flex; gap: 20px; align-items: flex-start; }
+.detail-associations { flex: 1; min-width: 0; }
+.detail-stack { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.detail-stack-row { display: flex; flex-direction: column; gap: 4px; }
+.detail-stack-row .card-label { margin-bottom: 2px; }
 .detail-igv { flex: 0 0 auto; }
 .detail-igv img {
-    max-width: 480px;
-    width: 100%;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
+    max-width: 500px; width: 100%;
+    border: 1px solid #dee2e6; border-radius: 4px;
 }
+/* Disease pills */
+.disease-section { margin-bottom: 10px; }
+.disease-section-label {
+    font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--color-text-3); margin-bottom: 6px;
+}
+.disease-pills { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.disease-pill {
+    background: #f0f4ff; color: #3b4a6b; border: 1px solid #c7d2fe;
+    padding: 2px 8px; border-radius: 12px; font-size: 0.78rem;
+}
+.disease-more-btn, .cosmic-more-btn {
+    background: none; border: 1px solid var(--color-border);
+    color: var(--color-accent); border-radius: 12px;
+    padding: 2px 8px; font-size: 0.75rem; cursor: pointer; font-weight: 600;
+}
+.disease-more.hidden, .cosmic-more.hidden { display: none; }
+/* COSMIC tissue chips */
+.cosmic-section { margin-top: 8px; }
+.cosmic-id { font-family: monospace; font-size: 0.8rem; color: var(--color-text-2); }
+.cosmic-tissues { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; align-items: center; }
+.cosmic-tissue {
+    background: #fef3c7; color: #92400e; border: 1px solid #fde68a;
+    padding: 2px 8px; border-radius: 12px; font-size: 0.75rem;
+}
+.cosmic-tissue strong { font-weight: 700; }
 """
 
 
@@ -700,6 +755,13 @@ function toggleDetailRow(btn) {
     var detailRow = btn.closest('tr').nextElementSibling;
     detailRow.classList.toggle('collapsed');
     btn.textContent = detailRow.classList.contains('collapsed') ? '▶' : '▼';
+}
+
+function toggleMore(btn, targetId) {
+    var el = document.getElementById(targetId);
+    if (!el) return;
+    var hidden = el.classList.toggle('hidden');
+    btn.textContent = hidden ? btn.dataset.more : btn.dataset.less;
 }
 """
 
@@ -899,6 +961,62 @@ class iSeqReportGenerator:
                     active.append(criterion)
         return active
 
+    @staticmethod
+    def _clndn_pills_html(clndn_raw: str, uid: str, max_visible: int = 8) -> str:
+        """Render ClinVar disease names as flex-wrap pill chips with +N more toggle."""
+        from html import escape as _esc
+        diseases = [d.replace('_', ' ').strip() for d in clndn_raw.split('|')
+                    if d.strip() and d.strip() not in ('.', '')]
+        if not diseases:
+            return ''
+        visible = diseases[:max_visible]
+        hidden = diseases[max_visible:]
+        pills = ''.join(f'<span class="disease-pill">{_esc(d)}</span>' for d in visible)
+        if hidden:
+            more_pills = ''.join(f'<span class="disease-pill">{_esc(d)}</span>' for d in hidden)
+            pills += (f'<span class="disease-more hidden" id="dm-{uid}">{more_pills}</span>'
+                      f'<button class="disease-more-btn" data-more="+{len(hidden)} more"'
+                      f' data-less="show less" onclick="toggleMore(this,\'dm-{uid}\')">'
+                      f'+{len(hidden)} more</button>')
+        return (f'<div class="disease-section">'
+                f'<div class="disease-section-label">ClinVar diseases</div>'
+                f'<div class="disease-pills">{pills}</div></div>')
+
+    @staticmethod
+    def _cosmic_html(cosmic_raw: str, uid: str, max_visible: int = 5, show_label: bool = True) -> str:
+        """Render COSMIC ID + top tissue occurrences as chips with +N more toggle."""
+        import re as _re
+        from html import escape as _esc
+        parts = cosmic_raw.split(';')
+        cosmic_id = parts[0].strip()
+        occ_str = next((p for p in parts if p.startswith('OCCURENCE=')), '')
+        if not occ_str:
+            header = (f'<div class="disease-section-label">COSMIC '
+                      f'<span class="cosmic-id">{_esc(cosmic_id)}</span></div>') if show_label else ''
+            return f'<div class="cosmic-section">{header}<span class="cosmic-id">{_esc(cosmic_id)}</span></div>'
+        tissues = []
+        for item in occ_str[len('OCCURENCE='):].split(','):
+            m = _re.match(r'(\d+)\(([^)]+)\)', item.strip())
+            if m:
+                tissues.append((int(m.group(1)), m.group(2).replace('_', ' ')))
+        tissues.sort(reverse=True)
+
+        def _chip(count, tissue):
+            return f'<span class="cosmic-tissue">{_esc(tissue)} <strong>{count}</strong></span>'
+
+        visible = tissues[:max_visible]
+        hidden = tissues[max_visible:]
+        chips = ''.join(_chip(c, t) for c, t in visible)
+        if hidden:
+            more_chips = ''.join(_chip(c, t) for c, t in hidden)
+            chips += (f'<span class="cosmic-more hidden" id="cm-{uid}">{more_chips}</span>'
+                      f'<button class="cosmic-more-btn" data-more="+{len(hidden)} tissues"'
+                      f' data-less="show less" onclick="toggleMore(this,\'cm-{uid}\')">'
+                      f'+{len(hidden)} tissues</button>')
+        header = (f'<div class="disease-section-label">COSMIC '
+                  f'<span class="cosmic-id">{_esc(cosmic_id)}</span></div>') if show_label else ''
+        return f'<div class="cosmic-section">{header}<div class="cosmic-tissues">{chips}</div></div>'
+
     def _clinical_summary_table_html(self, variants, col_map, sample_html_dir=None):
         """Build expandable clinical summary table — one summary row + one detail row per variant.
 
@@ -926,9 +1044,11 @@ class iSeqReportGenerator:
             interv = _get(row, "InterVar_automated")
             vaf    = escape(_get(row, "VAF"))
             dp     = escape(_get(row, "DP"))
-            clndn  = escape(_get(row, "CLNDN"))
+            clndn_raw = _get(row, "CLNDN")
+            clndn  = escape(clndn_raw)
             gnomad = escape(_get(row, "gnomad41_genome_AF"))
-            cosmic = escape(_get(row, "cosmic91"))
+            cosmic_raw = _get(row, "cosmic91")
+            cosmic = escape(cosmic_raw)
 
             clnsig_badge = _clinvar_sig_badge(clnsig)   if clnsig  else ""
             stars        = clnrevstat_to_stars(clnrev)   if clnrev  else ""
@@ -937,7 +1057,7 @@ class iSeqReportGenerator:
 
             active_criteria = self._get_active_acmg_criteria(row, col_map)
             acmg_chips = " ".join(
-                f'<span class="acmg-chip">{escape(c)}</span>'
+                f'<span class="acmg-chip {ACMG_CRITERION_CLASS.get(c, "")}">{escape(c)}</span>'
                 for c in active_criteria
             )
 
@@ -952,24 +1072,40 @@ class iSeqReportGenerator:
                     rel_igv = _os.path.relpath(igv_path, str(sample_html_dir))
                     igv_html = f'<div class="detail-igv"><img src="{escape(rel_igv)}" alt="IGV snapshot"></div>'
 
-            # Build detail fields (left side of detail content)
-            detail_rows = []
-            if clndn:
-                detail_rows.append(f'<div class="card-row"><span class="card-label">ClinVar disease:</span><span>{clndn}</span></div>')
-            if active_criteria:
-                detail_rows.append(f'<div class="card-row"><span class="card-label">ACMG criteria:</span><span>{acmg_chips}</span></div>')
+            # Build stacked detail rows (left column), IGV on the right
+            uid = f"{i}"
+            stack_rows = []
             if gnomad:
-                detail_rows.append(f'<div class="card-row"><span class="card-label">gnomAD AF:</span><span>{gnomad}</span></div>')
-            if cosmic:
-                detail_rows.append(f'<div class="card-row"><span class="card-label">COSMIC ID:</span><span>{cosmic}</span></div>')
-            detail_fields_html = "\n".join(detail_rows)
+                stack_rows.append(
+                    f'<div class="detail-stack-row">'
+                    f'<span class="card-label">gnomAD AF</span>'
+                    f'<span><span class="stat-pill">{gnomad}</span></span>'
+                    f'</div>')
+            if active_criteria:
+                stack_rows.append(
+                    f'<div class="detail-stack-row">'
+                    f'<span class="card-label">ACMG criteria</span>'
+                    f'<span>{acmg_chips}</span>'
+                    f'</div>')
+            if clndn_raw:
+                stack_rows.append(
+                    f'<div class="detail-stack-row">'
+                    f'<span class="card-label">ClinVar diseases</span>'
+                    f'{self._clndn_pills_html(clndn_raw, uid)}'
+                    f'</div>')
+            if cosmic_raw:
+                stack_rows.append(
+                    f'<div class="detail-stack-row">'
+                    f'{self._cosmic_html(cosmic_raw, uid)}'
+                    f'</div>')
+            stack_html = "\n".join(stack_rows)
 
             # Summary row (always visible) + detail row (toggle)
             rows_html.append(f"""
-        <tr class="summary-row">
+        <tr class="summary-row" onclick="scrollToCard('card-{i}')">
             <td><button class="toggle-btn" onclick="toggleDetailRow(this)">▶</button></td>
             <td>{gene}</td>
-            <td style="font-family:monospace;font-size:0.85em">{hgvsc}</td>
+            <td class="col-hgvsc">{hgvsc}</td>
             <td>{hgvsp}</td>
             <td>{clnsig_badge or escape(clnsig)}</td>
             <td>{stars}</td>
@@ -981,8 +1117,10 @@ class iSeqReportGenerator:
         <tr class="detail-row collapsed">
             <td colspan="10">
               <div class="detail-content">
-                <div class="detail-fields">{detail_fields_html}</div>
-                {igv_html}
+                <div class="detail-bottom">
+                  <div class="detail-stack">{stack_html}</div>
+                  {igv_html}
+                </div>
               </div>
             </td>
         </tr>""")
@@ -1104,25 +1242,54 @@ class iSeqReportGenerator:
                 return str(filepath.resolve())
         return None
 
-    def _format_data_value(self, col_header: str, value: str) -> str:
+    def _format_data_value(self, col_header: str, value: str, uid: str = "") -> str:
         """Format a cell value as HTML, adding hyperlinks for known column types."""
         if not value:
             return escape(value)
-        # COSMIC IDs: COSM12345 (comma- or semicolon-separated)
+
+        # CLNDN — pipe-separated disease names → pills, max 6 visible
+        if col_header == "CLNDN":
+            diseases = [d.replace('_', ' ').strip() for d in value.split('|')
+                        if d.strip() and d.strip() not in ('.', '')]
+            if diseases:
+                visible, hidden = diseases[:6], diseases[6:]
+                pills = ''.join(f'<span class="disease-pill">{escape(d)}</span>' for d in visible)
+                if hidden:
+                    more_id = f"dn-{uid}"
+                    pills += (f'<span class="disease-more hidden" id="{more_id}">'
+                              + ''.join(f'<span class="disease-pill">{escape(d)}</span>' for d in hidden)
+                              + f'</span><button class="disease-more-btn" data-more="+{len(hidden)} more"'
+                              f' data-less="show less" onclick="toggleMore(this,\'{more_id}\')">'
+                              f'+{len(hidden)} more</button>')
+                return f'<div class="disease-pills" style="margin-top:4px">{pills}</div>'
+
+        # CLNDISDB — pipe-separated DB:ID entries → monospace pills, max 5 visible
+        if col_header == "CLNDISDB":
+            entries = [e.strip() for e in value.split('|') if e.strip() and e.strip() != '.']
+            if entries:
+                visible, hidden = entries[:5], entries[5:]
+                pills = ''.join(f'<span class="disdb-pill">{escape(e)}</span>' for e in visible)
+                if hidden:
+                    more_id = f"db-{uid}"
+                    pills += (f'<span class="disease-more hidden" id="{more_id}">'
+                              + ''.join(f'<span class="disdb-pill">{escape(e)}</span>' for e in hidden)
+                              + f'</span><button class="disease-more-btn" data-more="+{len(hidden)} more"'
+                              f' data-less="show less" onclick="toggleMore(this,\'{more_id}\')">'
+                              f'+{len(hidden)} more</button>')
+                return f'<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px">{pills}</div>'
+
+        # CLNREVSTAT — pipe-separated review statuses → green pills
+        if col_header == "CLNREVSTAT":
+            statuses = [s.replace('_', ' ').strip() for s in value.split('|')
+                        if s.strip() and s.strip() != '.']
+            if statuses:
+                pills = ''.join(f'<span class="revstat-pill">{escape(s)}</span> ' for s in statuses)
+                return f'<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px">{pills}</div>'
+
+        # COSMIC91 — tissue occurrence chips (no label; data-label row provides it)
         if col_header == "cosmic91":
-            parts = re.split(r'[;,]', value)
-            linked = []
-            for part in parts:
-                part = part.strip()
-                m = re.match(r'COSM(\d+)', part, re.IGNORECASE)
-                if m:
-                    linked.append(
-                        f'<a href="https://cancer.sanger.ac.uk/cosmic/mutation/overview?id={m.group(1)}"'
-                        f' target="_blank">{escape(part)}</a>'
-                    )
-                elif part:
-                    linked.append(escape(part))
-            return '; '.join(linked) if linked else escape(value)
+            return self._cosmic_html(value, uid or "fa", show_label=False)
+
         return escape(value)
 
     def _data_grid_html(self, row_idx: int, col_indices: List[int]) -> str:
@@ -1134,7 +1301,8 @@ class iSeqReportGenerator:
                 continue
             col_header = self._header(col_idx)
             label = escape(col_header)
-            value_html = self._format_data_value(col_header, value)
+            uid = f"fa-{row_idx}-{col_idx}"
+            value_html = self._format_data_value(col_header, value, uid)
             items.append(f'''
                     <div class="data-item">
                         <div class="data-label">{label}</div>
@@ -1212,7 +1380,8 @@ class iSeqReportGenerator:
                             linked.append(escape(part))
                     value_html = '; '.join(linked) if linked else escape(value)
                 else:
-                    value_html = escape(value)
+                    value_html = self._format_data_value(
+                        col_header, value, uid=f"acmg-{row_idx}-{col_idx}")
                 clinvar_items.append(f'''
                     <div class="data-item">
                         <div class="data-label">{label}</div>
@@ -1549,6 +1718,16 @@ class iSeqReportGenerator:
         variants_dir = samples_dir / "variants"
         variants_dir.mkdir(exist_ok=True)
 
+        # Copy snapshots inside html_reports/ so they're accessible under the web server root
+        if self.snapshots_dir and self.snapshots_dir.exists():
+            import shutil
+            dest_snapshots = self.output_dir / "SnapShots"
+            if dest_snapshots.resolve() != self.snapshots_dir.resolve():
+                if dest_snapshots.exists():
+                    shutil.rmtree(str(dest_snapshots))
+                shutil.copytree(str(self.snapshots_dir), str(dest_snapshots))
+            self.snapshots_dir = dest_snapshots
+
         for sample_name in sorted(self.samples.keys()):
             safe_sample = re.sub(r'[^\w\-_]', '_', sample_name)
             print(f"Generating pages for sample: {sample_name}")
@@ -1588,8 +1767,23 @@ def generate_summary_page(html_dir: str):
         card_class = "sample-card no-variants" if n_variants == 0 else "sample-card"
         no_variants_badge = '<div class="no-variants-badge">No variants</div>' if n_variants == 0 else ""
         count_class = "sample-stat-value zero" if n_variants == 0 else "sample-stat-value"
+
+        # Determine clinical signal tier by scanning sample HTML for badge classes
+        data_tier = ""
+        if n_variants > 0:
+            try:
+                sample_html_content = sf.read_text(errors="replace")
+                if "badge-pathogenic" in sample_html_content:
+                    data_tier = ' data-tier="1"'
+                elif "badge-likely-pathogenic" in sample_html_content:
+                    data_tier = ' data-tier="2"'
+                else:
+                    data_tier = ' data-tier="3"'
+            except Exception:
+                data_tier = ' data-tier="3"'
+
         cards_html += f'''
-            <a href="samples/{escape(sf.name)}" class="{card_class}">
+            <a href="samples/{escape(sf.name)}" class="{card_class}"{data_tier}>
                 <div class="sample-card-header">
                     <h3>{escape(sample_name)}</h3>
                     {no_variants_badge}
